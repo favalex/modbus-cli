@@ -1,0 +1,183 @@
+#! /usr/bin/env python
+
+import argparse
+import struct
+import sys
+import re
+from itertools import chain, zip_longest
+
+import umodbus.exceptions
+
+def flatmap(f, items):
+    return chain.from_iterable(map(f, items))
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
+
+def fail(fmt, *args):
+    print(fmt.format(args))
+    sys.exit(1)
+
+def read_register(modbus_type, address, pack_type):
+    if modbus_type in 'cd':
+        n_registers = 1
+    else:
+        n_bytes = struct.calcsize(pack_type)
+        assert n_bytes % 2 == 0
+
+        n_registers =  n_bytes // 2
+
+    reader = {
+            'c': 'read_coils',
+            'd': 'read_discrete_inputs',
+            'h': 'read_holding_registers',
+            'i': 'read_input_registers',
+            }[modbus_type]
+
+    message = getattr(modbus, reader)(slave_id, address, n_registers)
+
+    print(message)
+
+    words = modbus.send_message(message, connection)
+
+    if modbus_type in 'cd':
+        return words
+    else:
+        packed = bytes(flatmap(lambda w: [w >> 8, w & 0xff], words))
+
+        return struct.unpack(pack_type, packed)
+
+def write_register(modbus_type, address, pack_type, value):
+    if modbus_type == 'c':
+        # TODO validate value, should be boolean
+        message = modbus.write_single_coil(slave_id, address, int(value))
+    else:
+        n_bytes = struct.calcsize(pack_type)
+        assert n_bytes % 2 == 0
+
+        n_registers =  n_bytes // 2
+
+        if 'f' in pack_type or 'd' in pack_type:
+            value = float(value)
+        else:
+            value = int(value)
+
+        words = [ h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2) ]
+        message = modbus.write_multiple_registers(slave_id, address, words)
+
+    return modbus.send_message(message, connection)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-r', '--registers')
+parser.add_argument('-s', '--slave-id', type=int)
+parser.add_argument('-b', '--baud', type=int, default=19200)
+parser.add_argument('device')
+parser.add_argument('access', nargs='+')
+args = parser.parse_args()
+
+if args.device[0] == '/':
+    from serial import Serial, PARITY_NONE
+
+    connection = Serial(port=args.device, baudrate=args.baud, parity=PARITY_NONE,
+                        stopbits=1, bytesize=8, timeout=1)
+
+    slave_id = args.slave_id
+    if not slave_id:
+        slave_id = 1
+
+    import umodbus.client.serial.rtu as modbus
+else:
+    port = 502
+    parts = args.device.split(':')
+    if len(parts) == 2:
+        host, port = parts
+    elif len(parts) == 1:
+        host = parts[0]
+    else:
+        fail("Invalid device {}", args.device)
+
+    if host == '':
+        host = 'localhost'
+
+    port = int(port)
+
+    import socket
+    connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    connection.connect((host, port))
+
+    if args.slave_id:
+        slave_id = args.slave_id
+    else:
+        slave_id = 255
+
+    import umodbus.client.tcp as modbus
+
+registers = {}
+
+if args.registers:
+    with open(args.registers) as f:
+        for line in f:
+            line = line.split('#')[0]
+
+            # TODO validate lines
+            parts = line.split()
+            if len(parts) == 2:
+                name, definition = parts
+                registers[name] = definition
+
+for access in args.access:
+    parts = access.split('=')
+    if len(parts) == 1:
+        register = parts[0]
+        write = False
+    else:
+        register, value = parts
+        write = True
+
+    if register in registers:
+        name = register
+        register = registers[name]
+    else:
+        name = None
+
+    modbus_type, address, pack_type = re.match('(.+@)?(\d*)(/.*)?', register).groups()
+
+    if not modbus_type:
+        modbus_type = 'h'
+    else:
+        modbus_type = modbus_type[:-1]
+
+    if not pack_type:
+        pack_type = '!H'
+    else:
+        pack_type = pack_type[1:]
+
+    address = int(address)
+
+    if pack_type[0] not in '@=<>!':
+        pack_type = '!' + pack_type
+
+    modbus_type = modbus_type.lower()
+    if modbus_type not in 'cdhi':
+        fail("Invalid Modbus type '{}'. Valid ones are 'cdhi'", modbus_type)
+    if write and modbus_type not in 'ch':
+        fail("Invalid Modbus type '{}'. Only coils and holding registers are writable", modbus_type)
+
+    if write:
+        write_register(modbus_type, address, pack_type, value)
+    else:
+        try:
+            value = read_register(modbus_type, address, pack_type)
+        except umodbus.exceptions.IllegalDataAddressError:
+            value = 'Invalid address'
+        except umodbus.exceptions.IllegalFunctionError:
+            value = 'Invalid modbus type'
+        else:
+            value = value[0]
+        # print("{}: {} 0x{:x}".format(address, value, value))
+        print("{}: {}".format(name or address, value))
+
+connection.close()
