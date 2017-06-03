@@ -8,6 +8,8 @@ from itertools import chain, zip_longest
 
 import umodbus.exceptions
 
+REGISTER_RE = re.compile('([cdhi]@)?(\d*)(/.*)?')
+
 def flatmap(f, items):
     return chain.from_iterable(map(f, items))
 
@@ -128,11 +130,14 @@ if args.registers:
         for line in f:
             line = line.split('#')[0]
 
-            # TODO validate lines
             parts = line.split()
             if len(parts) == 2:
                 name, definition = parts
-                registers[name] = definition
+
+                if REGISTER_RE.match(definition):
+                    registers[name] = definition
+                else:
+                    print("Invalid definition {!r} for register {!r}. Skipping it".format(definition, name))
 
 for access in args.access:
     parts = access.split('=')
@@ -149,7 +154,7 @@ for access in args.access:
     else:
         name = None
 
-    modbus_type, address, pack_type = re.match('(.+@)?(\d*)(/.*)?', register).groups()
+    modbus_type, address, pack_type = re.match(REGISTER_RE, register).groups()
 
     if not address:
         print("{!r} is not a known named register nor a valid register definition. Skipping it.".format(register))
