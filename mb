@@ -4,7 +4,7 @@ import argparse
 import struct
 import sys
 import re
-from itertools import chain, zip_longest
+from itertools import chain, zip_longest, groupby
 
 import umodbus.exceptions
 
@@ -151,16 +151,81 @@ if args.registers:
 
 class Access:
     def __init__(self, name, modbus_type, write, address, pack_type, value=None):
-        self.name = name
+        self.names = [name]
         self.modbus_type = modbus_type
         self.write = write
-        self.address = address
-        self.pack_type = pack_type
-        self.size = struct.calcsize(pack_type)
-        if modbus_type in ('h', 'i'):
-            assert self.size % 2 == 0
-            self.size //= 2
-        self.value = value
+        self.addresses = [address]
+        self.pack_types = [pack_type]
+        if self.write:
+            self.values = [value]
+        else:
+            self.values = None
+
+    def address(self):
+        return self.addresses[0]
+
+    def pack_type(self):
+        return self.pack_types[0]
+
+    def endianness(self):
+        return self.pack_type()[0]
+
+    def size(self):
+        total = 0
+        for p in self.pack_types:
+            size = struct.calcsize(p)
+            if modbus_type in ('h', 'i'):
+                assert size % 2 == 0
+                size //= 2
+
+            total += size
+
+        return total
+
+    def operations(self):
+        if self.write:
+            return zip(self.pack_types, self.values)
+        else:
+            return self.pack_types
+
+    def append(self, other):
+        self.names.extend(other.names)
+        # The endianess can be specified only once at the beginning of the unpack format.
+        # Only accesses with the same endianess are grouped together anyway.
+        self.pack_types.extend(t[1:] for t in other.pack_types)
+        self.addresses.extend(other.addresses)
+        if self.write:
+            self.values.extend(other.values)
+
+    def labels(self):
+        return (name or address for (name, address) in zip(self.names, self.addresses))
+
+    def __repr__(self):
+        return "{}@{}/{}{}".format(self.modbus_type, self.address(), self.pack_types, "={}".format(self.values) if self.write else "")
+
+def by_type(access):
+    return (access.modbus_type, access.write, access.endianness())
+
+def by_address(access):
+    return access.address()
+
+def group_accesses(accesses):
+    grouped = []
+
+    for (modbus_type, write, _), xs in groupby(sorted(accesses, key=by_type), key=by_type):
+        xs = sorted(xs, key=by_address)
+        while len(xs):
+            first = xs.pop(0)
+            while len(xs):
+                second = xs[0]
+                if first.address() + first.size() == second.address():
+                    first.append(second)
+                    xs.pop(0)
+                else:
+                    break
+            grouped.append(first)
+
+    return grouped
 
 accesses = []
 
@@ -209,19 +274,18 @@ for access in args.access:
 
     accesses.append(Access(name, modbus_type, write, address, pack_type, value))
 
-for a in accesses:
+for a in group_accesses(accesses):
     if a.write:
-        write_registers(a.modbus_type, a.address, [a.pack_type, a.value])
+        write_registers(a.modbus_type, a.address(), a.operations())
     else:
         try:
-            value = read_registers(a.modbus_type, a.address, [a.pack_type])
+            value = read_registers(a.modbus_type, a.address(), a.operations())
         except umodbus.exceptions.IllegalDataAddressError:
             value = 'Invalid address'
         except umodbus.exceptions.IllegalFunctionError:
             value = 'Invalid modbus type'
-        else:
-            value = value[0]
         # print("{}: {} 0x{:x}".format(address, value, value))
-        print("{}: {}".format(name or address, value))
+        for label, value in zip(a.labels(), value):
+            print("{}: {} {}".format(label, value, hex(value) if type(value) == int else ''))
 
 connection.close()
