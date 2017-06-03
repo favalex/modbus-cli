@@ -74,6 +74,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-r', '--registers')
 parser.add_argument('-s', '--slave-id', type=int)
 parser.add_argument('-b', '--baud', type=int, default=19200)
+parser.add_argument('-p', '--stop-bits', type=int, default=1)
 parser.add_argument('device')
 parser.add_argument('access', nargs='+')
 args = parser.parse_args()
@@ -82,7 +83,7 @@ if args.device[0] == '/':
     from serial import Serial, PARITY_NONE
 
     connection = Serial(port=args.device, baudrate=args.baud, parity=PARITY_NONE,
-                        stopbits=1, bytesize=8, timeout=1)
+                        stopbits=args.stop_bits, bytesize=8, timeout=1)
 
     slave_id = args.slave_id
     if not slave_id:
