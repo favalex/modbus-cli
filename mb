@@ -151,6 +151,10 @@ for access in args.access:
 
     modbus_type, address, pack_type = re.match('(.+@)?(\d*)(/.*)?', register).groups()
 
+    if not address:
+        print("{!r} is not a known named register nor a valid register definition. Skipping it.".format(register))
+        continue
+
     if not modbus_type:
         modbus_type = 'h'
     else:
