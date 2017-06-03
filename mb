@@ -26,12 +26,15 @@ def fail(fmt, *args):
 def dump(xs):
     print(' '.join('{:02x}'.format(x) for x in xs))
 
-def read_register(modbus_type, address, pack_type):
+def read_registers(modbus_type, address, pack_types):
     if modbus_type in 'cd':
         n_registers = 1
     else:
-        n_bytes = struct.calcsize(pack_type)
-        assert n_bytes % 2 == 0
+        n_bytes = 0
+
+        for pack_type in pack_types:
+            n_bytes += struct.calcsize(pack_type)
+            assert n_bytes % 2 == 0
 
         n_registers =  n_bytes // 2
 
@@ -51,24 +54,31 @@ def read_register(modbus_type, address, pack_type):
     else:
         packed = bytes(flatmap(lambda w: [w >> 8, w & 0xff], words))
 
-        return struct.unpack(pack_type, packed)
+        return struct.unpack(' '.join(pack_types), packed)
 
-def write_register(modbus_type, address, pack_type, value):
+def write_registers(modbus_type, address, values):
     if modbus_type == 'c':
-        # TODO validate value, should be boolean
-        message = modbus.write_single_coil(slave_id, address, int(value))
-    else:
-        n_bytes = struct.calcsize(pack_type)
-        assert n_bytes % 2 == 0
-
-        n_registers =  n_bytes // 2
-
-        if 'f' in pack_type or 'd' in pack_type:
-            value = float(value)
+        if len(values) == 1:
+            # TODO validate value, should be boolean
+            message = modbus.write_single_coil(slave_id, address, int(values[0]))
         else:
-            value = int(value, 0)
+            raise "Multiple coil write not implemented yet."
+    else:
+        words = []
 
-        words = [ h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2) ]
+        for pack_type, value in values:
+            n_bytes = struct.calcsize(pack_type)
+            assert n_bytes % 2 == 0
+
+            n_registers =  n_bytes // 2
+
+            if 'f' in pack_type or 'd' in pack_type:
+                value = float(value)
+            else:
+                value = int(value, 0)
+
+            words.append([ h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2) ])
+
         message = modbus.write_multiple_registers(slave_id, address, words)
 
     if args.verbose:
@@ -182,10 +192,10 @@ for access in args.access:
         fail("Invalid Modbus type '{}'. Only coils and holding registers are writable", modbus_type)
 
     if write:
-        write_register(modbus_type, address, pack_type, value)
+        write_registers(modbus_type, address, [pack_type, value])
     else:
         try:
-            value = read_register(modbus_type, address, pack_type)
+            value = read_registers(modbus_type, address, [pack_type])
         except umodbus.exceptions.IllegalDataAddressError:
             value = 'Invalid address'
         except umodbus.exceptions.IllegalFunctionError:
