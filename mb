@@ -64,7 +64,7 @@ def write_register(modbus_type, address, pack_type, value):
         if 'f' in pack_type or 'd' in pack_type:
             value = float(value)
         else:
-            value = int(value)
+            value = int(value, 0)
 
         words = [ h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2) ]
         message = modbus.write_multiple_registers(slave_id, address, words)
