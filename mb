@@ -149,10 +149,26 @@ if args.registers:
                 else:
                     print("Invalid definition {!r} for register {!r}. Skipping it".format(definition, name))
 
+class Access:
+    def __init__(self, name, modbus_type, write, address, pack_type, value=None):
+        self.name = name
+        self.modbus_type = modbus_type
+        self.write = write
+        self.address = address
+        self.pack_type = pack_type
+        self.size = struct.calcsize(pack_type)
+        if modbus_type in ('h', 'i'):
+            assert self.size % 2 == 0
+            self.size //= 2
+        self.value = value
+
+accesses = []
+
 for access in args.access:
     parts = access.split('=')
     if len(parts) == 1:
         register = parts[0]
+        value = None
         write = False
     else:
         register, value = parts
@@ -191,11 +207,14 @@ for access in args.access:
     if write and modbus_type not in 'ch':
         fail("Invalid Modbus type '{}'. Only coils and holding registers are writable", modbus_type)
 
-    if write:
-        write_registers(modbus_type, address, [pack_type, value])
+    accesses.append(Access(name, modbus_type, write, address, pack_type, value))
+
+for a in accesses:
+    if a.write:
+        write_registers(a.modbus_type, a.address, [a.pack_type, a.value])
     else:
         try:
-            value = read_registers(modbus_type, address, [pack_type])
+            value = read_registers(a.modbus_type, a.address, [a.pack_type])
         except umodbus.exceptions.IllegalDataAddressError:
             value = 'Invalid address'
         except umodbus.exceptions.IllegalFunctionError:
