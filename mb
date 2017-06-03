@@ -47,7 +47,13 @@ def read_registers(modbus_type, address, pack_types):
 
     message = getattr(modbus, reader)(slave_id, address, n_registers)
 
+    if args.verbose:
+        dump(message)
+
     words = modbus.send_message(message, connection)
+
+    if args.verbose:
+        print("Read {} registers: {}".format(n_registers, words))
 
     if modbus_type in 'cd':
         return words
