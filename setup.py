@@ -1,8 +1,13 @@
 from setuptools import setup
 
-setup(name='modbus-cli',
+def readme():
+    with open('README.rst') as f:
+        return f.read()
+
+setup(name='modbus_cli',
       version='0.1.0',
       description='Command line tool to access Modbus devices',
+      long_description=readme(),
       url='http://github.com/favalex/modbus-cli',
       author='Gabriele Favalessa',
       author_email='favalex@gmail.com',
