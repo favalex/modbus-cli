@@ -42,7 +42,7 @@ access
   One or more read or write operations. See ACCESS SYNTAX below.
 
 -r FILE, --registers=FILE    Read registers definitions from FILE.
--v, --verbose                Print on screen the bytes as transfered on the wire.
+-v, --verbose                Print on screen the bytes transferred on the wire.
 -b BAUD, --baud=BAUD         Set the baud rate for serial connections.
 -p BITS, --stop-bits=BITS    Set the number of stop bits for serial connections.
 -h, --help                   Show this help message and exit.
