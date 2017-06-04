@@ -41,11 +41,11 @@ device
 access
   One or more read or write operations. See ACCESS SYNTAX below.
 
---registers, -r=FILE    Read registers definitions from FILE.
---verbose, -v           Print on screen the bytes as transfered on the wire.
---baud, -b=BAUD         Set the baud rate for serial connections.
---stop-bits, -p=BITS    Set the number of stop bits for serial connections.
---help, -h              Show this help message and exit.
+-r FILE, --registers=FILE    Read registers definitions from FILE.
+-v, --verbose                Print on screen the bytes as transfered on the wire.
+-b BAUD, --baud=BAUD         Set the baud rate for serial connections.
+-p BITS, --stop-bits=BITS    Set the number of stop bits for serial connections.
+-h, --help                   Show this help message and exit.
 
 ACCESS SYNTAX
 =============
@@ -85,24 +85,24 @@ BINARY_TYPE = <pack format>
 VALUE = <number>
   The value to be written to the register. If not present, the register will be read instead.
 
+EXAMPLES
+========
+
+=============== ====
+``h@39/I``      read the 32-bits unsigned integer stored in holding registers at addresses 39 and 40
+``39/I``        same as above (h is the default modbus type)
+``39/I=42``     write the integer 42 to that register
+``39/I=0xcafe`` the value can be specified in hexadecimal
+``c@5``         read coil at address 5
+``h@24/f=6.78`` write a floating point value to holding registers at addresses 24 and 25
+=============== ====
+
 REGISTERS FILE SYNTAX
 =====================
 
 A ``#`` starts a comment.
 
 Each line contains a symbolic name followed by the register definition, separated by spaces.
-
-EXAMPLES
-========
-
-=========== ====
-h@39/I      read the 32-bits unsigned integer stored in holding registers at addresses 39 and 40
-39/I        same as above (h is the default modbus type)
-39/I=42     write the integer 42 to that register
-39/I=0xcafe the value can be specified in hexadecimal
-c@5         read coil at address 5
-h@24/f=6.78 write a floating point value to holding registers at addresses 24 and 25
-=========== ====
 
 SEE ALSO
 ========
