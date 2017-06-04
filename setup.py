@@ -17,5 +17,5 @@ setup(name='modbus-cli',
           'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
           'Operating System :: OS Independent',
           'Programming Language :: Python :: 3',
-          'Topic :: Software Development :: Embedded Systems',
+          'Topic :: Utilities',
       ])
