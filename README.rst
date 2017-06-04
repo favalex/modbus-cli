@@ -55,14 +55,14 @@ ACCESS SYNTAX
 MODBUS_TYPE = h|i|c|d
   The modbus type, one of
 
-  ==== ================ ======= =========
-  code name             size    writable
-  ==== ================ ======= =========
-  h    holding register 16 bits yes
-  i    input register   16 bits no
-  c    coil             1 bit   yes
-  d    discrete input   1 bit   no
-  ==== ================ ======= =========
+  ===== ================ ======= =========
+  code  name             size    writable
+  ===== ================ ======= =========
+  ``h`` holding register 16 bits yes
+  ``i`` input register   16 bits no
+  ``c`` coil             1 bit   yes
+  ``d`` discrete input   1 bit   no
+  ===== ================ ======= =========
 
 ADDRESS = <number>
   0-based register address
@@ -70,15 +70,15 @@ ADDRESS = <number>
 BINARY_TYPE = <pack format>
   Any format description accepted by the python standard ``pack`` module. Some common formats are:
 
-  ==== ====
-  code type
-  ==== ====
-  h    16 bits signed integer
-  H    16 bits unsigned integer
-  i    32 bits signed integer
-  I    32 bits unsigned integer
-  f    32 bits IEEE 754 float
-  ==== ====
+  ===== ====
+  code  type
+  ===== ====
+  ``h`` 16 bits signed integer
+  ``H`` 16 bits unsigned integer
+  ``i`` 32 bits signed integer
+  ``I`` 32 bits unsigned integer
+  ``f`` 32 bits IEEE 754 float
+  ===== ====
 
   The default byte order is big-endian, use a ``<`` prefix in the format to specify little-endian.
 
@@ -96,7 +96,7 @@ EXAMPLES
 ``39/I=0xcafe``      the value can be specified in hexadecimal
 ``c@5``              read coil at address 5
 ``h@24/f=6.78``      write a floating point value to holding registers at addresses 24 and 25
-``i@1/6B``           read six unsigned bytes stored in input registers at address 1, 2 and 3
+``i@1/6B``           read six unsigned bytes stored in input registers at addresses 1, 2 and 3
 ==================== ====
 
 REGISTERS FILE SYNTAX
