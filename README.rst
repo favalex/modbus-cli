@@ -92,6 +92,7 @@ EXAMPLES
 ``h@39/I``      read the 32-bits unsigned integer stored in holding registers at addresses 39 and 40
 ``39/I``        same as above (h is the default modbus type)
 ``39/I=42``     write the integer 42 to that register
+``SOME_REGISTER=42`` same as above, provided the registers file contains the definition ``SOME_REGISTER h@39/I``
 ``39/I=0xcafe`` the value can be specified in hexadecimal
 ``c@5``         read coil at address 5
 ``h@24/f=6.78`` write a floating point value to holding registers at addresses 24 and 25
