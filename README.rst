@@ -35,8 +35,12 @@ by the umodbus python library.
 OPTIONS
 =======
 
-device                  /dev/ttyXXX for serial devices, or hostname[:port] for TCP devices
-access                  One or more read or write operations. See ACCESS SYNTAX below.
+device
+  ``/dev/ttyXXX`` for serial devices, or ``hostname[:port]`` for TCP devices
+
+access
+  One or more read or write operations. See ACCESS SYNTAX below.
+
 --registers, -r=FILE    Read registers definitions from FILE.
 --verbose, -v           Print on screen the bytes as transfered on the wire.
 --baud, -b=BAUD         Set the baud rate for serial connections.
@@ -64,7 +68,7 @@ ADDRESS = <number>
   0-based register address
 
 BINARY_TYPE = <pack format>
-  Any format description accepted by the python standard `pack` module. Some common formats are:
+  Any format description accepted by the python standard ``pack`` module. Some common formats are:
 
   ==== ====
   code type
@@ -74,9 +78,9 @@ BINARY_TYPE = <pack format>
   i    32 bits signed integer
   I    32 bits unsigned integer
   f    32 bits IEEE 754 float
-  ====
+  ==== ====
 
-  The default byte order is big-endian, use a `<` prefix in the format to specify little-endian.
+  The default byte order is big-endian, use a ``<`` prefix in the format to specify little-endian.
 
 VALUE = <number>
   The value to be written to the register. If not present, the register will be read instead.
@@ -84,19 +88,21 @@ VALUE = <number>
 REGISTERS FILE SYNTAX
 =====================
 
-A `#` starts a comment.
+A ``#`` starts a comment.
 
 Each line contains a symbolic name followed by the register definition, separated by spaces.
 
 EXAMPLES
 ========
 
+=========== ====
 h@39/I      read the 32-bits unsigned integer stored in holding registers at addresses 39 and 40
 39/I        same as above (h is the default modbus type)
 39/I=42     write the integer 42 to that register
 39/I=0xcafe the value can be specified in hexadecimal
 c@5         read coil at address 5
 h@24/f=6.78 write a floating point value to holding registers at addresses 24 and 25
+=========== ====
 
 SEE ALSO
 ========
