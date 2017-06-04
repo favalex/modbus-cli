@@ -96,6 +96,7 @@ EXAMPLES
 ``39/I=0xcafe``      the value can be specified in hexadecimal
 ``c@5``              read coil at address 5
 ``h@24/f=6.78``      write a floating point value to holding registers at addresses 24 and 25
+``i@1/6B``           read six unsigned bytes stored in input registers at address 1, 2 and 3
 ==================== ====
 
 REGISTERS FILE SYNTAX
