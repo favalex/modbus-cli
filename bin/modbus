@@ -64,6 +64,7 @@ def read_registers(modbus_type, address, pack_types):
 
 def write_registers(modbus_type, address, values):
     if modbus_type == 'c':
+        values = [v[1] for v in values] # drop the pack type
         if len(values) == 1:
             # TODO validate value, should be boolean
             message = modbus.write_single_coil(slave_id, address, int(values[0]))
