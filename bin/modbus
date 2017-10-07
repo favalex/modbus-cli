@@ -28,7 +28,9 @@ def dump(xs):
 
 def read_registers(modbus_type, address, pack_types):
     if modbus_type in 'cd':
-        n_registers = 1
+        n_registers = 0
+        for pack_type in pack_types:
+            n_registers += struct.calcsize(pack_type)
     else:
         n_bytes = 0
 
@@ -202,7 +204,10 @@ def parse_accesses(s, registers):
             modbus_type = modbus_type[:-1]
 
         if not pack_type:
-            pack_type = '!H'
+            if modbus_type in 'cd':
+                pack_type = 'B'
+            else:
+                pack_type = '!H'
         else:
             pack_type = pack_type[1:]
 
