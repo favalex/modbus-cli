@@ -173,6 +173,39 @@ def group_accesses(accesses):
 
     return grouped
 
+def parse_access(register, name, write, value):
+    modbus_type, address, pack_type = re.match(REGISTER_RE, register).groups()
+
+    if not address:
+        print("{!r} is not a known named register nor a valid register definition. Skipping it.".format(register))
+        return None
+
+    if not modbus_type:
+        modbus_type = 'h'
+    else:
+        modbus_type = modbus_type[:-1]
+
+    if not pack_type:
+        if modbus_type in 'cd':
+            pack_type = 'B'
+        else:
+            pack_type = '!H'
+    else:
+        pack_type = pack_type[1:]
+
+    address = int(address)
+
+    if pack_type[0] not in '@=<>!':
+        pack_type = '!' + pack_type
+
+    modbus_type = modbus_type.lower()
+    if modbus_type not in 'cdhi':
+        fail("Invalid Modbus type '{}'. Valid ones are 'cdhi'", modbus_type)
+    if write and modbus_type not in 'ch':
+        fail("Invalid Modbus type '{}'. Only coils and holding registers are writable", modbus_type)
+
+    return Access(name, modbus_type, write, address, pack_type, value)
+
 def parse_accesses(s, registers):
     accesses = []
 
@@ -186,43 +219,16 @@ def parse_accesses(s, registers):
             register, value = parts
             write = True
 
-        if register in registers:
-            name = register
-            register = registers[name]
+        if re.fullmatch(REGISTER_RE, register):
+            access = parse_access(register, None, write, value)
+            if access:
+                accesses.append(access)
         else:
-            name = None
-
-        modbus_type, address, pack_type = re.match(REGISTER_RE, register).groups()
-
-        if not address:
-            print("{!r} is not a known named register nor a valid register definition. Skipping it.".format(register))
-            continue
-
-        if not modbus_type:
-            modbus_type = 'h'
-        else:
-            modbus_type = modbus_type[:-1]
-
-        if not pack_type:
-            if modbus_type in 'cd':
-                pack_type = 'B'
-            else:
-                pack_type = '!H'
-        else:
-            pack_type = pack_type[1:]
-
-        address = int(address)
-
-        if pack_type[0] not in '@=<>!':
-            pack_type = '!' + pack_type
-
-        modbus_type = modbus_type.lower()
-        if modbus_type not in 'cdhi':
-            fail("Invalid Modbus type '{}'. Valid ones are 'cdhi'", modbus_type)
-        if write and modbus_type not in 'ch':
-            fail("Invalid Modbus type '{}'. Only coils and holding registers are writable", modbus_type)
-
-        accesses.append(Access(name, modbus_type, write, address, pack_type, value))
+            for name, definition in registers.items():
+                if re.match(register, name):
+                    access = parse_access(definition, name, write, value)
+                    if access:
+                        accesses.append(access)
 
     return accesses
 
