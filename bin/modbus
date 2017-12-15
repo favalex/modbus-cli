@@ -63,7 +63,14 @@ def read_registers(modbus_type, address, pack_types):
     else:
         packed = struct.pack('>{}H'.format(len(words)), *words)
 
-        return struct.unpack(' '.join(pack_types), packed)
+        result = []
+
+        for pack in pack_types:
+            size = struct.calcsize(pack)
+            result.append(struct.unpack(pack, packed[:size]))
+            packed = packed[size:]
+
+        return result
 
 def write_registers(modbus_type, address, values):
     if modbus_type == 'c':
@@ -137,9 +144,7 @@ class Access:
 
     def append(self, other):
         self.names.extend(other.names)
-        # The endianess can be specified only once at the beginning of the unpack format.
-        # Only accesses with the same endianess are grouped together anyway.
-        self.pack_types.extend(t[1:] for t in other.pack_types)
+        self.pack_types.extend(other.pack_types)
         self.addresses.extend(other.addresses)
         if self.write:
             self.values.extend(other.values)
