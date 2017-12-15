@@ -4,6 +4,7 @@ import argparse
 import struct
 import sys
 import re
+import os
 from itertools import chain, zip_longest, groupby
 import fnmatch
 
@@ -377,7 +378,7 @@ def connect_to_device(args):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--registers', action='append')
+parser.add_argument('-r', '--registers', action='append', default=[])
 parser.add_argument('-s', '--slave-id', type=int)
 parser.add_argument('-b', '--baud', type=int, default=19200)
 parser.add_argument('-p', '--stop-bits', type=int, default=1)
@@ -389,7 +390,7 @@ args = parser.parse_args()
 modbus, slave_id, connection = connect_to_device(args)
 
 definitions = Definitions()
-definitions.parse(args.registers)
+definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
 
 register_found = False
 for a in group_accesses(parse_accesses(args.access, definitions)):
