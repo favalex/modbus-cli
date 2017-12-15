@@ -59,7 +59,7 @@ def read_registers(modbus_type, address, pack_types):
         print('←', words)
 
     if modbus_type in 'cd':
-        return words
+        return [[w] for w in words]
     else:
         packed = struct.pack('>{}H'.format(len(words)), *words)
 
