@@ -291,21 +291,33 @@ class Definitions:
         for filename in filenames:
             if filename:
                 with open(filename) as f:
+                    accumulated_line = ''
                     for line in f:
-                        line = line.split('#')[0]
-
-                        if line[0] in ':|':
-                            name, values = self.parse_presenter(line)
-                            self.presenters[name] = values
+                        if line[0].isspace():
+                            accumulated_line += line
                         else:
-                            parts = line.split()
-                            if len(parts) == 2:
-                                name, definition = parts
+                            self.parse_line(accumulated_line)
+                            accumulated_line = line
+                    self.parse_line(accumulated_line)
 
-                                if REGISTER_RE.match(definition):
-                                    self.registers[name] = definition
-                                else:
-                                    print("Invalid definition {!r} for register {!r}. Skipping it".format(definition, name))
+    def parse_line(self, line):
+        if not line:
+            return
+
+        line = line.split('#')[0]
+
+        if line[0] in ':|':
+            name, values = self.parse_presenter(line)
+            self.presenters[name] = values
+        else:
+            parts = line.split()
+            if len(parts) == 2:
+                name, definition = parts
+
+                if REGISTER_RE.match(definition):
+                    self.registers[name] = definition
+                else:
+                    print("Invalid definition {!r} for register {!r}. Skipping it".format(definition, name))
 
     def parse_presenter(self, line):
         parts = line.split()
