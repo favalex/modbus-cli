@@ -24,7 +24,7 @@ def fail(fmt, *args):
     sys.exit(1)
 
 def dump(xs):
-    print(' '.join('{:02x}'.format(x) for x in xs))
+    return ' '.join('{:02x}'.format(x) for x in xs)
 
 def read_registers(modbus_type, address, pack_types):
     if modbus_type in 'cd':
@@ -50,12 +50,12 @@ def read_registers(modbus_type, address, pack_types):
     message = getattr(modbus, reader)(slave_id, address, n_registers)
 
     if args.verbose:
-        dump(message)
+        print('→ |', dump(message), '|')
 
     words = modbus.send_message(message, connection)
 
     if args.verbose:
-        print("Read {} registers: {}".format(n_registers, words))
+        print('←', words)
 
     if modbus_type in 'cd':
         return words
@@ -91,7 +91,7 @@ def write_registers(modbus_type, address, values):
         message = modbus.write_multiple_registers(slave_id, address, words)
 
     if args.verbose:
-        dump(message)
+        print('→ |', dump(message), '|')
 
     return modbus.send_message(message, connection)
 
