@@ -61,7 +61,7 @@ def read_registers(modbus_type, address, pack_types):
     if modbus_type in 'cd':
         return words
     else:
-        packed = bytes(flatmap(lambda w: [w >> 8, w & 0xff], words))
+        packed = struct.pack('>{}H'.format(len(words)), *words)
 
         return struct.unpack(' '.join(pack_types), packed)
 
