@@ -305,7 +305,9 @@ args = parser.parse_args()
 
 modbus, slave_id, connection = connect_to_device(args)
 
+register_found = False
 for a in group_accesses(parse_accesses(args.access, parse_registers(args.registers))):
+    register_found = True
     if a.write:
         write_registers(a.modbus_type, a.address(), a.operations())
     else:
@@ -318,5 +320,8 @@ for a in group_accesses(parse_accesses(args.access, parse_registers(args.registe
 
         for label, value in zip(a.labels(), value):
             print("{}: {} {}".format(label, value, hex(value) if type(value) == int else ''))
+
+if not register_found:
+    print("Register not found")
 
 connection.close()
