@@ -5,6 +5,7 @@ import struct
 import sys
 import re
 from itertools import chain, zip_longest, groupby
+import fnmatch
 
 import umodbus.exceptions
 
@@ -224,8 +225,9 @@ def parse_accesses(s, registers):
             if access:
                 accesses.append(access)
         else:
+            register_re = re.compile(fnmatch.translate(register))
             for name, definition in registers.items():
-                if re.match(register, name):
+                if register_re.match(name):
                     access = parse_access(definition, name, write, value)
                     if access:
                         accesses.append(access)
