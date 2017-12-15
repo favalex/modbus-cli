@@ -326,6 +326,8 @@ for a in group_accesses(parse_accesses(args.access, parse_registers(args.registe
             value = ('Invalid modbus type', )
 
         for label, value in zip(a.labels(), value):
+            if len(value) == 1:
+                value = value[0]
             print("{}: {} {}".format(label, value, hex(value) if type(value) == int else ''))
 
 if not register_found:
