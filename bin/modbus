@@ -9,7 +9,7 @@ import fnmatch
 
 import umodbus.exceptions
 
-REGISTER_RE = re.compile('([cdhi]@)?(\d*)(/.*)?')
+REGISTER_RE = re.compile('([cdhi]@)?(\d*)(/[^:|]*)?([:|].*)?')
 
 
 def flatmap(f, items):
@@ -109,12 +109,13 @@ def write_registers(modbus_type, address, values):
 
 
 class Access:
-    def __init__(self, name, modbus_type, write, address, pack_type, value=None):
+    def __init__(self, name, modbus_type, write, address, pack_type, value=None, presenter=None):
         self.names = [name]
         self.modbus_type = modbus_type
         self.write = write
         self.addresses = [address]
         self.pack_types = [pack_type]
+        self.presenters = [presenter]
         if self.write:
             self.values = [value]
         else:
@@ -125,6 +126,9 @@ class Access:
 
     def pack_type(self):
         return self.pack_types[0]
+
+    def presenter(self):
+        return self.presenters[0]
 
     def endianness(self):
         return self.pack_type()[0]
@@ -151,11 +155,36 @@ class Access:
         self.names.extend(other.names)
         self.pack_types.extend(other.pack_types)
         self.addresses.extend(other.addresses)
+        self.presenters.extend(other.presenters)
         if self.write:
             self.values.extend(other.values)
 
     def labels(self):
         return (name or address for (name, address) in zip(self.names, self.addresses))
+
+    def print(self, value, definitions):
+        for label, value, presenter in zip(self.labels(), value, self.presenters):
+            if len(value) == 1:
+                value = value[0]
+            print("{}: {} {}".format(label, value, self.present_value(value, presenter, definitions)))
+
+    def present_value(self, value, presenter, definitions):
+        if type(value) != int:
+            return ''
+
+        presentation = [hex(value)]
+
+        if presenter:
+            if presenter[0] == ':':
+                presentation.append(definitions.presenters[presenter][value])
+            elif presenter[0] == '|':
+                names = []
+                for bit, name in definitions.presenters[presenter].items():
+                    if value & (1 << bit):
+                        names.append(name)
+                presentation.append(' | '.join(names))
+
+        return ' '.join(presentation)
 
     def __repr__(self):
         return "{}@{}/{}{}".format(self.modbus_type,
@@ -192,7 +221,7 @@ def group_accesses(accesses):
 
 
 def parse_access(register, name, write, value):
-    modbus_type, address, pack_type = re.match(REGISTER_RE, register).groups()
+    modbus_type, address, pack_type, presenter = re.match(REGISTER_RE, register).groups()
 
     if not address:
         print("{!r} is not a known named register nor a valid register definition. Skipping it.".format(register))
@@ -222,10 +251,10 @@ def parse_access(register, name, write, value):
     if write and modbus_type not in 'ch':
         fail("Invalid Modbus type '{}'. Only coils and holding registers are writable", modbus_type)
 
-    return Access(name, modbus_type, write, address, pack_type, value)
+    return Access(name, modbus_type, write, address, pack_type, value, presenter)
 
 
-def parse_accesses(s, registers):
+def parse_accesses(s, definitions):
     accesses = []
 
     for access in s:
@@ -244,7 +273,7 @@ def parse_accesses(s, registers):
                 accesses.append(access)
         else:
             register_re = re.compile(fnmatch.translate(register))
-            for name, definition in registers.items():
+            for name, definition in definitions.registers.items():
                 if register_re.match(name):
                     access = parse_access(definition, name, write, value)
                     if access:
@@ -253,24 +282,43 @@ def parse_accesses(s, registers):
     return accesses
 
 
-def parse_registers(registers_filename):
-    registers = {}
+class Definitions:
+    def __init__(self):
+        self.registers = {}
+        self.presenters = {}
 
-    if registers_filename:
-        with open(registers_filename) as f:
-            for line in f:
-                line = line.split('#')[0]
+    def parse(self, filenames):
+        for filename in filenames:
+            if filename:
+                with open(filename) as f:
+                    for line in f:
+                        line = line.split('#')[0]
 
-                parts = line.split()
-                if len(parts) == 2:
-                    name, definition = parts
+                        if line[0] in ':|':
+                            name, values = self.parse_presenter(line)
+                            self.presenters[name] = values
+                        else:
+                            parts = line.split()
+                            if len(parts) == 2:
+                                name, definition = parts
 
-                    if REGISTER_RE.match(definition):
-                        registers[name] = definition
-                    else:
-                        print("Invalid definition {!r} for register {!r}. Skipping it".format(definition, name))
+                                if REGISTER_RE.match(definition):
+                                    self.registers[name] = definition
+                                else:
+                                    print("Invalid definition {!r} for register {!r}. Skipping it".format(definition, name))
 
-    return registers
+    def parse_presenter(self, line):
+        parts = line.split()
+
+        name = parts[0]
+
+        values = {}
+        for definition in parts[1:]:
+            value, symbol = definition.split('=')
+
+            values[int(value, 0)] = symbol
+
+        return name, values
 
 
 def connect_to_device(args):
@@ -317,7 +365,7 @@ def connect_to_device(args):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--registers')
+parser.add_argument('-r', '--registers', action='append')
 parser.add_argument('-s', '--slave-id', type=int)
 parser.add_argument('-b', '--baud', type=int, default=19200)
 parser.add_argument('-p', '--stop-bits', type=int, default=1)
@@ -328,8 +376,11 @@ args = parser.parse_args()
 
 modbus, slave_id, connection = connect_to_device(args)
 
+definitions = Definitions()
+definitions.parse(args.registers)
+
 register_found = False
-for a in group_accesses(parse_accesses(args.access, parse_registers(args.registers))):
+for a in group_accesses(parse_accesses(args.access, definitions)):
     register_found = True
     if a.write:
         write_registers(a.modbus_type, a.address(), a.operations())
@@ -341,10 +392,7 @@ for a in group_accesses(parse_accesses(args.access, parse_registers(args.registe
         except umodbus.exceptions.IllegalFunctionError:
             value = ('Invalid modbus type', )
 
-        for label, value in zip(a.labels(), value):
-            if len(value) == 1:
-                value = value[0]
-            print("{}: {} {}".format(label, value, hex(value) if type(value) == int else ''))
+        a.print(value, definitions)
 
 if not register_found:
     print("Register not found")
