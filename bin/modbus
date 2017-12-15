@@ -11,8 +11,10 @@ import umodbus.exceptions
 
 REGISTER_RE = re.compile('([cdhi]@)?(\d*)(/.*)?')
 
+
 def flatmap(f, items):
     return chain.from_iterable(map(f, items))
+
 
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
@@ -20,12 +22,15 @@ def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return zip_longest(*args, fillvalue=fillvalue)
 
+
 def fail(fmt, *args):
     print(fmt.format(args))
     sys.exit(1)
 
+
 def dump(xs):
     return ' '.join('{:02x}'.format(x) for x in xs)
+
 
 def read_registers(modbus_type, address, pack_types):
     if modbus_type in 'cd':
@@ -39,7 +44,7 @@ def read_registers(modbus_type, address, pack_types):
             n_bytes += struct.calcsize(pack_type)
             assert n_bytes % 2 == 0
 
-        n_registers =  n_bytes // 2
+        n_registers = n_bytes // 2
 
     reader = {
             'c': 'read_coils',
@@ -72,9 +77,10 @@ def read_registers(modbus_type, address, pack_types):
 
         return result
 
+
 def write_registers(modbus_type, address, values):
     if modbus_type == 'c':
-        values = [v[1] for v in values] # drop the pack type
+        values = [v[1] for v in values]  # drop the pack type
         if len(values) == 1:
             # TODO validate value, should be boolean
             message = modbus.write_single_coil(slave_id, address, int(values[0]))
@@ -87,14 +93,12 @@ def write_registers(modbus_type, address, values):
             n_bytes = struct.calcsize(pack_type)
             assert n_bytes % 2 == 0
 
-            n_registers =  n_bytes // 2
-
             if 'f' in pack_type or 'd' in pack_type:
                 value = float(value)
             else:
                 value = int(value, 0)
 
-            words.extend([ h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2) ])
+            words.extend([h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2)])
 
         message = modbus.write_multiple_registers(slave_id, address, words)
 
@@ -102,6 +106,7 @@ def write_registers(modbus_type, address, values):
         print('→ |', dump(message), '|')
 
     return modbus.send_message(message, connection)
+
 
 class Access:
     def __init__(self, name, modbus_type, write, address, pack_type, value=None):
@@ -153,13 +158,19 @@ class Access:
         return (name or address for (name, address) in zip(self.names, self.addresses))
 
     def __repr__(self):
-        return "{}@{}/{}{}".format(self.modbus_type, self.address(), self.pack_types, "={}".format(self.values) if self.write else "")
+        return "{}@{}/{}{}".format(self.modbus_type,
+                                   self.address(),
+                                   self.pack_types,
+                                   "={}".format(self.values) if self.write else "")
+
 
 def by_type(access):
     return (access.modbus_type, access.write, access.endianness())
 
+
 def by_address(access):
     return access.address()
+
 
 def group_accesses(accesses):
     grouped = []
@@ -178,6 +189,7 @@ def group_accesses(accesses):
             grouped.append(first)
 
     return grouped
+
 
 def parse_access(register, name, write, value):
     modbus_type, address, pack_type = re.match(REGISTER_RE, register).groups()
@@ -212,6 +224,7 @@ def parse_access(register, name, write, value):
 
     return Access(name, modbus_type, write, address, pack_type, value)
 
+
 def parse_accesses(s, registers):
     accesses = []
 
@@ -239,6 +252,7 @@ def parse_accesses(s, registers):
 
     return accesses
 
+
 def parse_registers(registers_filename):
     registers = {}
 
@@ -257,6 +271,7 @@ def parse_registers(registers_filename):
                         print("Invalid definition {!r} for register {!r}. Skipping it".format(definition, name))
 
     return registers
+
 
 def connect_to_device(args):
     if args.device[0] == '/':
@@ -299,6 +314,7 @@ def connect_to_device(args):
         import umodbus.client.tcp as modbus
 
     return modbus, slave_id, connection
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-r', '--registers')
