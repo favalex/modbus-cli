@@ -33,36 +33,6 @@ def dump(xs):
     return ' '.join('{:02x}'.format(x) for x in xs)
 
 
-def write_registers(modbus_type, address, values):
-    if modbus_type == 'c':
-        values = [v[1] for v in values]  # drop the pack type
-        if len(values) == 1:
-            # TODO validate value, should be boolean
-            message = modbus.write_single_coil(slave_id, address, int(values[0]))
-        else:
-            raise "Multiple coil write not implemented yet."
-    else:
-        words = []
-
-        for pack_type, value in values:
-            n_bytes = struct.calcsize(pack_type)
-            assert n_bytes % 2 == 0
-
-            if 'f' in pack_type or 'd' in pack_type:
-                value = float(value)
-            else:
-                value = int(value, 0)
-
-            words.extend([h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2)])
-
-        message = modbus.write_multiple_registers(slave_id, address, words)
-
-    if args.verbose:
-        print('→ |', dump(message), '|')
-
-    return modbus.send_message(message, connection)
-
-
 class Access:
     def __init__(self, name, modbus_type, write, address, pack_type, value=None, presenter=None):
         self.names = [name]
@@ -162,7 +132,7 @@ class Access:
                 'i': 'read_input_registers',
                 }[self.modbus_type]
 
-        self.request = getattr(modbus.modbus, reader)(modbus.slave_id, self.address(), n_registers)
+        self.request = getattr(modbus.protocol, reader)(modbus.slave_id, self.address(), n_registers)
 
         if args.verbose:
             print('→ |', dump(self.request), '|')
@@ -193,6 +163,35 @@ class Access:
                 size = struct.calcsize(pack)
                 self.values.append(struct.unpack(pack, packed[:size]))
                 packed = packed[size:]
+
+    def write_registers(self, modbus):
+        if self.modbus_type == 'c':
+            values = [v[1] for v in self.values]  # drop the pack type
+            if len(values) == 1:
+                # TODO validate value, should be boolean
+                message = modbus.protocol.write_single_coil(modbus.slave_id, self.address, int(values[0]))
+            else:
+                raise "Multiple coil write not implemented yet."
+        else:
+            words = []
+
+            for pack_type, value in zip(self.pack_types, self.values):
+                n_bytes = struct.calcsize(pack_type)
+                assert n_bytes % 2 == 0
+
+                if 'f' in pack_type or 'd' in pack_type:
+                    value = float(value)
+                else:
+                    value = int(value, 0)
+
+                words.extend([h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2)])
+
+            message = modbus.protocol.write_multiple_registers(modbus.slave_id, self.address(), words)
+
+        if args.verbose:
+            print('→ |', dump(message), '|')
+
+        return modbus.send(message)
 
     def __repr__(self):
         return "{}@{}/{}{}".format(self.modbus_type,
@@ -343,24 +342,8 @@ class Definitions:
 
 def connect_to_device(args):
     if args.device[0] == '/':
-        from serial import Serial, PARITY_NONE
-
-        connection = Serial(port=args.device, baudrate=args.baud, parity=PARITY_NONE,
-                            stopbits=args.stop_bits, bytesize=8, timeout=1)
-
-        # I had to patch rtu to read(1000) instead of read(serial_device.in_waiting) (in_waiting was always 0)
-
-        slave_id = args.slave_id
-        if not slave_id:
-            slave_id = 1
-
-        import umodbus.client.serial.rtu as modbus
+        modbus = ModbusRtu(args.device, args.baud, args.stop_bits, args.slave_id)
     else:
-        if args.slave_id:
-            slave_id = args.slave_id
-        else:
-            slave_id = 255
-
         port = 502
         parts = args.device.split(':')
         if len(parts) == 2:
@@ -375,22 +358,23 @@ def connect_to_device(args):
 
         port = int(port)
 
-        modbus = ModbusTcp(host, port, slave_id)
-        modbus.connect()
+        modbus = ModbusTcp(host, port, args.slave_id)
 
-        return modbus
+    modbus.connect()
 
-    return modbus, slave_id, connection
+    return modbus
 
 
 class ModbusTcp:
     def __init__(self, host, port, slave_id):
         self.host = host
         self.port = port
+        if not slave_id:
+            slave_id = 255
         self.slave_id = slave_id
 
         import umodbus.client.tcp as modbus
-        self.modbus = modbus
+        self.protocol = modbus
 
     def connect(self):
         import socket
@@ -404,7 +388,11 @@ class ModbusTcp:
         header = self.receive_n(6)
         seq, _, count = struct.unpack('>3H', header)
         response = header + self.receive_n(count)
-        return self.modbus.parse_response_adu(response, request)
+
+        if args.verbose:
+            print('← |', dump(response), '|', len(response), 'bytes')
+
+        return self.protocol.parse_response_adu(response, request)
 
     def receive_n(self, n):
         data = bytes()
@@ -415,18 +403,73 @@ class ModbusTcp:
     def close(self):
         self.connection.close()
 
+    def perform_accesses(self, accesses):
+        accesses = group_accesses(accesses)
 
-def perform_accesses(modbus, accesses):
-    accesses = group_accesses(accesses)
+        for access in accesses:
+            if access.write:
+                access.write_registers(self)
+            else:
+                access.read_registers_send(self)
 
-    for access in accesses:
-        access.read_registers_send(modbus)
+        for access in accesses:
+            if not access.write:
+                access.read_registers_receive(self)
+                access.print_values(definitions)
 
-    for access in accesses:
-        access.read_registers_receive(modbus)
-        access.print_values(definitions)
+        return self
 
-    modbus.close()
+
+class ModbusRtu:
+    def __init__(self, device, baud, stop_bits, slave_id):
+        self.device = device
+        self.baud = baud
+        self.stop_bits = stop_bits
+        if not slave_id:
+            slave_id = 1
+        self.slave_id = slave_id
+
+        import umodbus.client.serial.rtu as modbus
+        self.protocol = modbus
+
+    def connect(self):
+        from serial import Serial, PARITY_NONE
+
+        self.connection = Serial(port=self.device, baudrate=self.baud, parity=PARITY_NONE,
+                                 stopbits=self.stop_bits, bytesize=8)
+
+    def send(self, request):
+        self.connection.write(request)
+
+    def receive(self, request):
+        response = self.connection.read(2)
+        slave_id, function = response
+
+        if function == 3:
+            response += self.connection.read(1)
+            count = 2 + response[-1]
+            response += self.connection.read(count)
+
+        if args.verbose:
+            print('← |', dump(response), '|', len(response), 'bytes')
+
+        return self.protocol.parse_response_adu(response, request)
+
+    def close(self):
+        self.connection.close()
+
+    def perform_accesses(self, accesses):
+        accesses = group_accesses(accesses)
+
+        for access in accesses:
+            if access.write:
+                access.write_registers(self)
+            else:
+                access.read_registers_send(self)
+                access.read_registers_receive(self)
+                access.print_values(definitions)
+
+        return self
 
 
 parser = argparse.ArgumentParser()
@@ -442,5 +485,5 @@ args = parser.parse_args()
 definitions = Definitions()
 definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
 
-perform_accesses(connect_to_device(args), parse_accesses(args.access, definitions))
+connect_to_device(args).perform_accesses(parse_accesses(args.access, definitions)).close()
 
