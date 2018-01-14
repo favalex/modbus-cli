@@ -33,52 +33,6 @@ def dump(xs):
     return ' '.join('{:02x}'.format(x) for x in xs)
 
 
-def read_registers(modbus_type, address, pack_types):
-    if modbus_type in 'cd':
-        n_registers = 0
-        for pack_type in pack_types:
-            n_registers += struct.calcsize(pack_type)
-    else:
-        n_bytes = 0
-
-        for pack_type in pack_types:
-            n_bytes += struct.calcsize(pack_type)
-            assert n_bytes % 2 == 0
-
-        n_registers = n_bytes // 2
-
-    reader = {
-            'c': 'read_coils',
-            'd': 'read_discrete_inputs',
-            'h': 'read_holding_registers',
-            'i': 'read_input_registers',
-            }[modbus_type]
-
-    message = getattr(modbus, reader)(slave_id, address, n_registers)
-
-    if args.verbose:
-        print('→ |', dump(message), '|')
-
-    words = modbus.send_message(message, connection)
-
-    if args.verbose:
-        print('←', words)
-
-    if modbus_type in 'cd':
-        return [[w] for w in words]
-    else:
-        packed = struct.pack('>{}H'.format(len(words)), *words)
-
-        result = []
-
-        for pack in pack_types:
-            size = struct.calcsize(pack)
-            result.append(struct.unpack(pack, packed[:size]))
-            packed = packed[size:]
-
-        return result
-
-
 def write_registers(modbus_type, address, values):
     if modbus_type == 'c':
         values = [v[1] for v in values]  # drop the pack type
@@ -163,8 +117,8 @@ class Access:
     def labels(self):
         return (name or address for (name, address) in zip(self.names, self.addresses))
 
-    def print(self, value, definitions):
-        for label, value, presenter in zip(self.labels(), value, self.presenters):
+    def print_values(self, definitions):
+        for label, value, presenter in zip(self.labels(), self.values, self.presenters):
             if len(value) == 1:
                 value = value[0]
             print("{}: {} {}".format(label, value, self.present_value(value, presenter, definitions)))
@@ -186,6 +140,59 @@ class Access:
                 presentation.append(' | '.join(names))
 
         return ' '.join(presentation)
+
+    def read_registers_send(self, modbus):
+        if self.modbus_type in 'cd':
+            n_registers = 0
+            for pack_type in self.pack_types:
+                n_registers += struct.calcsize(pack_type)
+        else:
+            n_bytes = 0
+
+            for pack_type in self.pack_types:
+                n_bytes += struct.calcsize(pack_type)
+                assert n_bytes % 2 == 0
+
+            n_registers = n_bytes // 2
+
+        reader = {
+                'c': 'read_coils',
+                'd': 'read_discrete_inputs',
+                'h': 'read_holding_registers',
+                'i': 'read_input_registers',
+                }[self.modbus_type]
+
+        self.request = getattr(modbus.modbus, reader)(modbus.slave_id, self.address(), n_registers)
+
+        if args.verbose:
+            print('→ |', dump(self.request), '|')
+
+        modbus.send(self.request)
+
+    def read_registers_receive(self, modbus):
+        try:
+            words = modbus.receive(self.request)
+        except umodbus.exceptions.IllegalDataAddressError:
+            self.values = ('Invalid address', )
+            return
+        except umodbus.exceptions.IllegalFunctionError:
+            self.values = ('Invalid modbus type', )
+            return
+
+        if args.verbose:
+            print('←', words)
+
+        if self.modbus_type in 'cd':
+            self.values = [[w] for w in words]
+        else:
+            packed = struct.pack('>{}H'.format(len(words)), *words)
+
+            self.values = []
+
+            for pack in self.pack_types:
+                size = struct.calcsize(pack)
+                self.values.append(struct.unpack(pack, packed[:size]))
+                packed = packed[size:]
 
     def __repr__(self):
         return "{}@{}/{}{}".format(self.modbus_type,
@@ -349,6 +356,11 @@ def connect_to_device(args):
 
         import umodbus.client.serial.rtu as modbus
     else:
+        if args.slave_id:
+            slave_id = args.slave_id
+        else:
+            slave_id = 255
+
         port = 502
         parts = args.device.split(':')
         if len(parts) == 2:
@@ -363,18 +375,58 @@ def connect_to_device(args):
 
         port = int(port)
 
-        import socket
-        connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        connection.connect((host, port))
+        modbus = ModbusTcp(host, port, slave_id)
+        modbus.connect()
 
-        if args.slave_id:
-            slave_id = args.slave_id
-        else:
-            slave_id = 255
-
-        import umodbus.client.tcp as modbus
+        return modbus
 
     return modbus, slave_id, connection
+
+
+class ModbusTcp:
+    def __init__(self, host, port, slave_id):
+        self.host = host
+        self.port = port
+        self.slave_id = slave_id
+
+        import umodbus.client.tcp as modbus
+        self.modbus = modbus
+
+    def connect(self):
+        import socket
+        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connection.connect((self.host, self.port))
+
+    def send(self, request):
+        self.connection.send(request)
+
+    def receive(self, request):
+        header = self.receive_n(6)
+        seq, _, count = struct.unpack('>3H', header)
+        response = header + self.receive_n(count)
+        return self.modbus.parse_response_adu(response, request)
+
+    def receive_n(self, n):
+        data = bytes()
+        while len(data) < n:
+            data += self.connection.recv(n - len(data))
+        return data
+
+    def close(self):
+        self.connection.close()
+
+
+def perform_accesses(modbus, accesses):
+    accesses = group_accesses(accesses)
+
+    for access in accesses:
+        access.read_registers_send(modbus)
+
+    for access in accesses:
+        access.read_registers_receive(modbus)
+        access.print_values(definitions)
+
+    modbus.close()
 
 
 parser = argparse.ArgumentParser()
@@ -387,27 +439,8 @@ parser.add_argument('device')
 parser.add_argument('access', nargs='+')
 args = parser.parse_args()
 
-modbus, slave_id, connection = connect_to_device(args)
-
 definitions = Definitions()
 definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
 
-register_found = False
-for a in group_accesses(parse_accesses(args.access, definitions)):
-    register_found = True
-    if a.write:
-        write_registers(a.modbus_type, a.address(), a.operations())
-    else:
-        try:
-            value = read_registers(a.modbus_type, a.address(), a.operations())
-        except umodbus.exceptions.IllegalDataAddressError:
-            value = ('Invalid address', )
-        except umodbus.exceptions.IllegalFunctionError:
-            value = ('Invalid modbus type', )
+perform_accesses(connect_to_device(args), parse_accesses(args.access, definitions))
 
-        a.print(value, definitions)
-
-if not register_found:
-    print("Register not found")
-
-connection.close()
