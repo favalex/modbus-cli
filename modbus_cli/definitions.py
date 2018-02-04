@@ -40,7 +40,7 @@ class Definitions:
                 if REGISTER_RE.match(definition):
                     self.registers[name] = definition
                 else:
-                    logging.warn("Invalid definition %r for register %r. Skipping it", definition, name)
+                    logging.warn('Invalid definition %r for register %r. Skipping it', definition, name)
 
     def parse_presenter(self, line):
         parts = line.split()

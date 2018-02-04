@@ -10,7 +10,7 @@ from .definitions import REGISTER_RE
 
 
 def grouper(iterable, n, fillvalue=None):
-    "Collect data into fixed-length chunks or blocks"
+    'Collect data into fixed-length chunks or blocks'
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
     return zip_longest(*args, fillvalue=fillvalue)
@@ -78,7 +78,7 @@ class Access:
         for label, value, presenter in zip(self.labels(), self.values, self.presenters):
             if len(value) == 1:
                 value = value[0]
-            print("{}: {} {}".format(label, value, self.present_value(value, presenter, definitions)))
+            print('{}: {} {}'.format(label, value, self.present_value(value, presenter, definitions)))
 
     def present_value(self, value, presenter, definitions):
         if type(value) != int:
@@ -183,10 +183,10 @@ class Access:
         modbus.receive(self.request)
 
     def __repr__(self):
-        return "{}@{}/{}{}".format(self.modbus_type,
+        return '{}@{}/{}{}'.format(self.modbus_type,
                                    self.address(),
                                    self.pack_types,
-                                   "={}".format(self.values) if self.write else "")
+                                   '={}'.format(self.values) if self.write else '')
 
 
 def by_type(access):
@@ -220,7 +220,7 @@ def parse_access(register, name, write, value):
     modbus_type, address, pack_type, presenter = re.match(REGISTER_RE, register).groups()
 
     if not address:
-        logging.warn("%r is not a known named register nor a valid register definition. Skipping it.", register)
+        logging.warn('%r is not a known named register nor a valid register definition. Skipping it.', register)
         return None
 
     if not modbus_type:

@@ -27,7 +27,7 @@ class ModbusRtu:
     def receive(self, request):
         response = self.connection.read(2)
         if len(response) != 2:
-            raise RuntimeError("timeout")
+            raise RuntimeError('timeout')
         slave_id, function = response
 
         if function in (1, 2, 3, 4):
@@ -41,7 +41,7 @@ class ModbusRtu:
         elif function & 0x80:
             response += self.connection.read(3)
         else:
-            raise NotImplementedError(f'RTU function {function}')
+            raise NotImplementedError('RTU function {}'.format(function))
 
         logging.debug('← < %s > %s bytes', dump(response), len(response))
 
