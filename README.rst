@@ -95,10 +95,14 @@ EXAMPLES
 Read a holding register
 -----------------------
 
+::
+
   $ modbus $IP_OF_MODBUS_DEVICE 100
 
 Write a holding register
 ------------------------
+
+::
 
   $ modbus $IP_OF_MODBUS_DEVICE 100=42
 
