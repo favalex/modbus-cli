@@ -496,18 +496,25 @@ class ModbusRtu:
         return self
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--registers', action='append', default=[])
-parser.add_argument('-s', '--slave-id', type=int)
-parser.add_argument('-b', '--baud', type=int, default=19200)
-parser.add_argument('-p', '--stop-bits', type=int, default=1)
-parser.add_argument('-v', '--verbose', action='store_true')
-parser.add_argument('device')
-parser.add_argument('access', nargs='+')
-args = parser.parse_args()
+def main():
+    global args
+    global definitions
 
-definitions = Definitions()
-definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--registers', action='append', default=[])
+    parser.add_argument('-s', '--slave-id', type=int)
+    parser.add_argument('-b', '--baud', type=int, default=19200)
+    parser.add_argument('-p', '--stop-bits', type=int, default=1)
+    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('device')
+    parser.add_argument('access', nargs='+')
+    args = parser.parse_args()
 
-connect_to_device(args).perform_accesses(parse_accesses(args.access, definitions)).close()
+    definitions = Definitions()
+    definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
 
+    connect_to_device(args).perform_accesses(parse_accesses(args.access, definitions)).close()
+
+
+# try:
+main()
