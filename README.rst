@@ -20,17 +20,15 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
-modbus allows reading and writing registers of Modbus devices from the command line.
+Read and write registers of Modbus devices.
 
-It can talk to both TCP and RTU (i.e. serial) devices and can encode and decode
-types larger than 16 bits (e.g. floats) into Modbus 16 bits registers.
+Access both TCP and RTU (i.e. serial) devices and encode and decode types
+larger than 16 bits (e.g. floats) into Modbus 16 bits registers.
 
-Register definitions (consisting of a register address and its type) can be
-provided directly on the command line or loaded from a file and referred by
-symbolic name, for convenience.
+Optionally access registers by symbolic names, as defined in a registers file.
 
-modbus is implemented in python on top of the protocol implementation provided
-by the umodbus python library.
+Implemented in python on top of the protocol implementation provided by the
+umodbus python library.
 
 OPTIONS
 =======
@@ -41,7 +39,7 @@ device
 access
   One or more read or write operations. See ACCESS SYNTAX below.
 
--r FILE, --registers=FILE    Read registers definitions from FILE.
+-r FILE, --registers=FILE    Read registers definitions from FILE. Can be specified multiple times.
 -v, --verbose                Print on screen the bytes transferred on the wire.
 -b BAUD, --baud=BAUD         Set the baud rate for serial connections.
 -p BITS, --stop-bits=BITS    Set the number of stop bits for serial connections.
@@ -50,9 +48,11 @@ access
 ACCESS SYNTAX
 =============
 
-[MODBUS_TYPE@]ADDRESS[/BINARY_TYPE][:ENUMERATION_NAME][=VALUE]
+::
 
-Mnemonic: access the register(s) of MODBUS_TYPE starting at ADDRESS
+  [MODBUS_TYPE@]ADDRESS[/BINARY_TYPE][:ENUMERATION_NAME][=VALUE]
+
+Mnemonic: access the register(s) of MODBUS_TYPE starting at ADDRESS,
 interpreting them as BINARY_TYPE. The ``/`` syntax is inspired by gdb (even
 though the available types are different.)
 
@@ -67,6 +67,8 @@ MODBUS_TYPE = h|i|c|d
   ``c`` coil             1 bit   yes
   ``d`` discrete input   1 bit   no
   ===== ================ ======= =========
+
+The default modbus type is holding register.
 
 ADDRESS = <number>
   0-based register address
