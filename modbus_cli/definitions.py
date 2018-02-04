@@ -31,6 +31,9 @@ class Definitions:
             return
 
         line = line.split('#')[0]
+        line = line.strip()
+        if not line:
+            return
 
         if line[0] in ':|':
             name, values = self.parse_presenter(line)
