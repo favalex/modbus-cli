@@ -167,12 +167,12 @@ class Access:
 
     def write_registers(self, modbus):
         if self.modbus_type == 'c':
-            values = [v[1] for v in self.values]  # drop the pack type
-            if len(values) == 1:
+            if len(self.values) == 1:
                 # TODO validate value, should be boolean
-                message = modbus.protocol.write_single_coil(modbus.slave_id, self.address, int(values[0]))
+                message = modbus.protocol.write_single_coil(modbus.slave_id, self.address(), int(self.values[0]))
             else:
-                raise "Multiple coil write not implemented yet."
+                message = modbus.protocol.write_multiple_coils(modbus.slave_id, self.address(),
+                                                               [int(v) for v in self.values])
         else:
             words = []
 
