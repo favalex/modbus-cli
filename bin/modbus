@@ -154,7 +154,7 @@ class Access:
             print('←', words)
 
         if self.modbus_type in 'cd':
-            self.values = [[w] for w in words]
+            self.values = [[words]]
         else:
             packed = struct.pack('>{}H'.format(len(words)), *words)
 
