@@ -7,6 +7,7 @@ import re
 import os
 from itertools import chain, zip_longest, groupby
 import fnmatch
+import time
 
 import umodbus.exceptions
 
@@ -379,6 +380,7 @@ class ModbusTcp:
     def connect(self):
         import socket
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connection.settimeout(5)
         self.connection.connect((self.host, self.port))
 
     def send(self, request):
@@ -397,7 +399,10 @@ class ModbusTcp:
     def receive_n(self, n):
         data = bytes()
         while len(data) < n:
+            len_before = len(data)
             data += self.connection.recv(n - len(data))
+            if len(data) == len_before:
+                time.sleep(0.1)
         return data
 
     def close(self):
@@ -436,13 +441,15 @@ class ModbusRtu:
         from serial import Serial, PARITY_NONE
 
         self.connection = Serial(port=self.device, baudrate=self.baud, parity=PARITY_NONE,
-                                 stopbits=self.stop_bits, bytesize=8)
+                                 stopbits=self.stop_bits, bytesize=8, timeout=5)
 
     def send(self, request):
         self.connection.write(request)
 
     def receive(self, request):
         response = self.connection.read(2)
+        if len(response) != 2:
+            raise RuntimeError("timeout")
         slave_id, function = response
 
         if function == 3:
