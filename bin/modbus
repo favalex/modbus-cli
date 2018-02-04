@@ -462,10 +462,16 @@ class ModbusRtu:
             raise RuntimeError("timeout")
         slave_id, function = response
 
-        if function == 3:
+        if function in (1, 2, 3, 4):
+            # Functions with variable size
             response += self.connection.read(1)
             count = 2 + response[-1]
             response += self.connection.read(count)
+        elif function in (5, 15):
+            # Function with fixed size
+            response += self.connection.read(6)
+        else:
+            raise NotImplementedError(f'RTU function {function}')
 
         if args.verbose:
             print('← <', dump(response), '>', len(response), 'bytes')
