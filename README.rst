@@ -52,9 +52,9 @@ ACCESS SYNTAX
 
   [MODBUS_TYPE@]ADDRESS[/BINARY_TYPE][:ENUMERATION_NAME][=VALUE]
 
-Mnemonic: access the register(s) of MODBUS_TYPE starting at ADDRESS,
-interpreting them as BINARY_TYPE. The ``/`` syntax is inspired by gdb (even
-though the available types are different.)
+Mnemonic: access the register(s) of MODBUS_TYPE starting *at* ADDRESS,
+interpreting them as BINARY_TYPE. The ``/`` syntax is inspired by gdb (but the
+available types are different.)
 
 MODBUS_TYPE = h|i|c|d
   The modbus type, one of
