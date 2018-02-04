@@ -9,7 +9,7 @@ Access Modbus devices from the command line
 :Author: favalex@gmail.com
 :Date: 2017-06-04
 :Copyright: MPL 2.0
-:Version: 0.1
+:Version: 0.1.4
 :Manual section: 1
 
 SYNOPSIS
@@ -50,7 +50,11 @@ access
 ACCESS SYNTAX
 =============
 
-[MODBUS_TYPE@]ADDRESS[/BINARY_TYPE][=VALUE]
+[MODBUS_TYPE@]ADDRESS[/BINARY_TYPE][:ENUMERATION_NAME][=VALUE]
+
+Mnemonic: access the register(s) of MODBUS_TYPE starting at ADDRESS
+interpreting them as BINARY_TYPE. The ``/`` syntax is inspired by gdb (even
+though the available types are different.)
 
 MODBUS_TYPE = h|i|c|d
   The modbus type, one of
@@ -99,12 +103,80 @@ EXAMPLES
 ``i@1/6B``           read six unsigned bytes stored in input registers at addresses 1, 2 and 3
 ==================== ====
 
+Read multiple registers
+-----------------------
+
+To read multiple registers simply list them on the command line::
+
+$ modbus $IP_OF_MODBUS_DEVICE 100 c@2000
+
+reads the holding register @100 and the coil @2000.
+
+Monitor a register
+------------------
+
+The UNIX command ``watch`` can be used to read a register at regular intervals::
+
+$ watch modbus $IP_OF_MODBUS_DEVICE 100
+
+Read a serial device attached to a remote computer
+--------------------------------------------------
+
+The UNIX command ``socat`` can be used to access a remote device::
+
+remote$ socat -d -d tcp-l:54321,reuseaddr file:/dev/ttyUSB0,raw,b19200
+
+local$ socat -d -d tcp:sc:54321 pty,waitslave,link=/tmp/local_device,unlink-close=0
+
+local$ modbus /tmp/local_device 100
+
+Read multiple registers based on their names
+--------------------------------------------
+
+Given the following registers definitions::
+
+$ cat registers.modbus
+ai0 i@512
+ai1 i@513
+ai2 i@514
+ai3 i@515
+
+you can use glob matching (*, ?, etc.) to read all the registers at once::
+
+$ modbus -r registers.modbus $IP_OF_MODBUS_DEVICE ai\*
+
 REGISTERS FILE SYNTAX
 =====================
 
 A ``#`` starts a comment.
 
-Each line contains a symbolic name followed by the register definition, separated by spaces.
+Each line contains a symbolic name followed by the register definition (using
+the same syntax you would use on the command line.) The name and the
+definitions are separated by spaces, for example::
+
+status i@512:STATUS
+leds 513:LEDS
+
+The file can also contain the possible values for an enumeation or a bitmask, for example:
+
+# This is an enumeration named STATUS
+:STATUS
+  0=OFF
+  1=ON
+  2=ERROR
+
+# This is a bitmask named LEDS
+|LEDS
+  0=LED0
+  1=LED1
+  3=LED3
+  4=LED4
+
+ENVIRONMENT
+===========
+
+MODBUS_DEFINITIONS
+  A colon separated list of register definitions files.
 
 SEE ALSO
 ========
