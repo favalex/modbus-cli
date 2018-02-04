@@ -192,7 +192,12 @@ class Access:
         if args.verbose:
             print('→ <', dump(message), '>')
 
+        self.request = message
+
         return modbus.send(message)
+
+    def write_registers_receive(self, modbus):
+        modbus.receive(self.request)
 
     def __repr__(self):
         return "{}@{}/{}{}".format(self.modbus_type,
@@ -421,7 +426,9 @@ class ModbusTcp:
                 access.read_registers_send(self)
 
         for access in accesses:
-            if not access.write:
+            if access.write:
+                access.write_registers_receive(self)
+            else:
                 access.read_registers_receive(self)
                 access.print_values(definitions)
 
@@ -474,6 +481,7 @@ class ModbusRtu:
         for access in accesses:
             if access.write:
                 access.write_registers(self)
+                access.write_registers_receive(self)
             else:
                 access.read_registers_send(self)
                 access.read_registers_receive(self)
