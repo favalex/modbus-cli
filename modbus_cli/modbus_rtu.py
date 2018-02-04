@@ -1,6 +1,6 @@
 import logging
 
-from .access import group_accesses, dump
+from .access import dump
 
 
 class ModbusRtu:
@@ -51,8 +51,6 @@ class ModbusRtu:
         self.connection.close()
 
     def perform_accesses(self, accesses, definitions):
-        accesses = group_accesses(accesses)
-
         for access in accesses:
             if access.write:
                 access.write_registers(self)

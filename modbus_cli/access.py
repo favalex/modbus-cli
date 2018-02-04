@@ -275,4 +275,4 @@ def parse_accesses(s, definitions):
                     if access:
                         accesses.append(access)
 
-    return accesses
+    return group_accesses(accesses)
