@@ -389,6 +389,9 @@ class ModbusTcp:
     def receive(self, request):
         header = self.receive_n(6)
         seq, _, count = struct.unpack('>3H', header)
+        sent_seq = struct.unpack('>H', request[:2])[0]
+        if seq != sent_seq:
+            print(f'Sequence mismatch: sent {sent_seq}, received {seq}')
         response = header + self.receive_n(count)
 
         if args.verbose:
