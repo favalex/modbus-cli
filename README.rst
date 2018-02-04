@@ -113,8 +113,6 @@ To read (or write) multiple registers simply list them on the command line::
 
   $ modbus $IP_OF_MODBUS_DEVICE 100 c@2000
 
-reads the holding register @100 and the coil @2000.
-
 More examples of the access syntax
 ----------------------------------
 
