@@ -13,8 +13,11 @@ class Definitions:
         for filename in filenames:
             if filename:
                 with open(filename) as f:
+                    self.filename = filename
+                    self.line = 0
                     accumulated_line = ''
                     for line in f:
+                        self.line += 1
                         if line[0].isspace():
                             accumulated_line += line
                         else:
@@ -40,7 +43,11 @@ class Definitions:
                 if REGISTER_RE.match(definition):
                     self.registers[name] = definition
                 else:
-                    logging.warn('Invalid definition %r for register %r. Skipping it', definition, name)
+                    logging.warning('%s:%d:Invalid definition %r for register %r. Skipping it.',
+                                    self.filename, self.line, definition, name)
+            else:
+                logging.warning('%s:%d:Invalid definition %r. Skipping it.',
+                                self.filename, self.line, line)
 
     def parse_presenter(self, line):
         parts = line.split()
