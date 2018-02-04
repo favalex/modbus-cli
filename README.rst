@@ -92,6 +92,28 @@ VALUE = <number>
 EXAMPLES
 ========
 
+Read a holding register
+-----------------------
+
+  $ modbus $IP_OF_MODBUS_DEVICE 100
+
+Write a holding register
+------------------------
+
+  $ modbus $IP_OF_MODBUS_DEVICE 100=42
+
+Read multiple registers
+-----------------------
+
+To read (or write) multiple registers simply list them on the command line::
+
+  $ modbus $IP_OF_MODBUS_DEVICE 100 c@2000
+
+reads the holding register @100 and the coil @2000.
+
+More examples of the access syntax
+----------------------------------
+
 ==================== ====
 ``h@39/I``           read the 32-bits unsigned integer stored in holding registers at addresses 39 and 40
 ``39/I``             same as above (h is the default modbus type)
@@ -103,74 +125,69 @@ EXAMPLES
 ``i@1/6B``           read six unsigned bytes stored in input registers at addresses 1, 2 and 3
 ==================== ====
 
-Read multiple registers
------------------------
-
-To read multiple registers simply list them on the command line::
-
-$ modbus $IP_OF_MODBUS_DEVICE 100 c@2000
-
-reads the holding register @100 and the coil @2000.
-
 Monitor a register
 ------------------
 
 The UNIX command ``watch`` can be used to read a register at regular intervals::
 
-$ watch modbus $IP_OF_MODBUS_DEVICE 100
+  $ watch modbus $IP_OF_MODBUS_DEVICE 100
 
 Read a serial device attached to a remote computer
 --------------------------------------------------
 
-The UNIX command ``socat`` can be used to access a remote device::
+The UNIX command ``socat`` can be used to access a remote device through a TCP
+tunnel::
 
-remote$ socat -d -d tcp-l:54321,reuseaddr file:/dev/ttyUSB0,raw,b19200
-
-local$ socat -d -d tcp:sc:54321 pty,waitslave,link=/tmp/local_device,unlink-close=0
-
-local$ modbus /tmp/local_device 100
+  remote$ socat -d -d tcp-l:54321,reuseaddr file:/dev/ttyUSB0,raw,b19200
+  local$ socat -d -d tcp:sc:54321 pty,waitslave,link=/tmp/local_device,unlink-close=0
+  local$ modbus /tmp/local_device 100
 
 Read multiple registers based on their names
 --------------------------------------------
 
 Given the following registers definitions::
 
-$ cat registers.modbus
-ai0 i@512
-ai1 i@513
-ai2 i@514
-ai3 i@515
+  $ cat registers.modbus
+  di0 d@0
+  di1 d@1
+  ai0 i@512
+  ai1 i@513
 
-you can use glob matching (*, ?, etc.) to read all the registers at once::
+glob matching (*, ?, etc.) can be used to read all the ``ai`` registers at once::
 
-$ modbus -r registers.modbus $IP_OF_MODBUS_DEVICE ai\*
+  $ modbus -r registers.modbus $IP_OF_MODBUS_DEVICE ai\*
 
-REGISTERS FILE SYNTAX
+REGISTERS FILES
 =====================
 
-A ``#`` starts a comment.
+The purpose of the registers files is to be able to refer to registers by name.
 
-Each line contains a symbolic name followed by the register definition (using
-the same syntax you would use on the command line.) The name and the
-definitions are separated by spaces, for example::
+There can be multiple definition files, specified using either the ``-r``
+command line switch or the ``MODBUS_DEFINITIONS`` environment variable.
 
-status i@512:STATUS
-leds 513:LEDS
+A ``#`` in a definition file starts a comment.
 
-The file can also contain the possible values for an enumeation or a bitmask, for example:
+Each line contains a symbolic name followed by a register definition. The name
+and the definitions are separated by spaces, for example::
 
-# This is an enumeration named STATUS
-:STATUS
-  0=OFF
-  1=ON
-  2=ERROR
+  status i@512:STATUS
+  leds 513:LEDS
 
-# This is a bitmask named LEDS
-|LEDS
-  0=LED0
-  1=LED1
-  3=LED3
-  4=LED4
+The file can also contain the possible values for an enumeration or a bitmask,
+for example::
+
+  # This is an enumeration named STATUS
+  :STATUS
+    0=OFF
+    1=ON
+    2=ERROR
+
+  # This is a bitmask named LEDS
+  |LEDS
+    0=LED0
+    1=LED1
+    3=LED3
+    4=LED4
 
 ENVIRONMENT
 ===========
