@@ -155,7 +155,7 @@ Given the following registers definitions::
   ai0 i@512
   ai1 i@513
 
-glob matching (*, ?, etc.) can be used to read all the ``ai`` registers at once::
+glob matching (\*, ?, etc.) can be used to read all the ``ai`` registers at once::
 
   $ modbus -r registers.modbus $IP_OF_MODBUS_DEVICE ai\*
 
