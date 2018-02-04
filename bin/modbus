@@ -135,7 +135,7 @@ class Access:
         self.request = getattr(modbus.protocol, reader)(modbus.slave_id, self.address(), n_registers)
 
         if args.verbose:
-            print('→ |', dump(self.request), '|')
+            print('→ <', dump(self.request), '>')
 
         modbus.send(self.request)
 
@@ -189,7 +189,7 @@ class Access:
             message = modbus.protocol.write_multiple_registers(modbus.slave_id, self.address(), words)
 
         if args.verbose:
-            print('→ |', dump(message), '|')
+            print('→ <', dump(message), '>')
 
         return modbus.send(message)
 
@@ -390,7 +390,7 @@ class ModbusTcp:
         response = header + self.receive_n(count)
 
         if args.verbose:
-            print('← |', dump(response), '|', len(response), 'bytes')
+            print('← <', dump(response), '>', len(response), 'bytes')
 
         return self.protocol.parse_response_adu(response, request)
 
@@ -451,7 +451,7 @@ class ModbusRtu:
             response += self.connection.read(count)
 
         if args.verbose:
-            print('← |', dump(response), '|', len(response), 'bytes')
+            print('← <', dump(response), '>', len(response), 'bytes')
 
         return self.protocol.parse_response_adu(response, request)
 
