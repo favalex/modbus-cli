@@ -1,0 +1,11 @@
+# a comment
+
+a_register i@100/4H:a_presenter
+
+:a_presenter
+  0=x
+  1=y
+  
+
+another_register
+invalid_register xxx
