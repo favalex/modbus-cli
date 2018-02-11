@@ -58,7 +58,3 @@ def main():
 
 
 main()
-
-# TODO
-# docstrings
-# tests
