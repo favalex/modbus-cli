@@ -52,12 +52,8 @@ class ModbusRtu:
 
     def perform_accesses(self, accesses, definitions):
         for access in accesses:
-            if access.write:
-                access.write_registers(self)
-                access.write_registers_receive(self)
-            else:
-                access.read_registers_send(self)
-                access.read_registers_receive(self)
+            access.perform(self)
+            if not access.write:
                 access.print_values(definitions)
 
         return self

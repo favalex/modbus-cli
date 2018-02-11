@@ -52,7 +52,7 @@ class ModbusTcp:
     def perform_accesses(self, accesses, definitions):
         for access in accesses:
             if access.write:
-                access.write_registers(self)
+                access.write_registers_send(self)
             else:
                 access.read_registers_send(self)
 

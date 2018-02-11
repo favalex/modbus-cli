@@ -21,17 +21,13 @@ def dump(xs):
 
 
 class Access:
-    def __init__(self, name, modbus_type, write, address, pack_type, value=None, presenter=None):
-        self.names = [name]
+    def __init__(self, modbus_type, addresses, pack_types, values=None, names=None, presenters=None):
         self.modbus_type = modbus_type
-        self.write = write
-        self.addresses = [address]
-        self.pack_types = [pack_type]
-        self.presenters = [presenter]
-        if self.write:
-            self.values = [value]
-        else:
-            self.values = None
+        self.values_to_write = values
+        self.addresses = addresses
+        self.pack_types = pack_types
+        self.names = names or [None] * len(addresses)
+        self.presenters = presenters or [None] * len(addresses)
 
     def address(self):
         return self.addresses[0]
@@ -45,7 +41,12 @@ class Access:
     def endianness(self):
         return self.pack_type()[0]
 
+    @property
+    def write(self):
+        return bool(self.values_to_write)
+
     def size(self):
+        """Number of registers"""
         total = 0
         for p in self.pack_types:
             size = struct.calcsize(p)
@@ -59,7 +60,7 @@ class Access:
 
     def operations(self):
         if self.write:
-            return zip(self.pack_types, self.values)
+            return zip(self.pack_types, self.values_to_write)
         else:
             return self.pack_types
 
@@ -69,12 +70,12 @@ class Access:
         self.addresses.extend(other.addresses)
         self.presenters.extend(other.presenters)
         if self.write:
-            self.values.extend(other.values)
+            self.values_to_write.extend(other.values_to_write)
 
     def labels(self):
         return (name or address for (name, address) in zip(self.names, self.addresses))
 
-    def print_values(self, definitions):
+    def print_values(self, definitions=None):
         for label, value, presenter in zip(self.labels(), self.values, self.presenters):
             if len(value) == 1:
                 value = value[0]
@@ -97,6 +98,14 @@ class Access:
                 presentation.append(' | '.join(names))
 
         return ' '.join(presentation)
+
+    def perform(self, modbus):
+        if self.write:
+            self.write_registers_send(modbus)
+            self.write_registers_receive(modbus)
+        else:
+            self.read_registers_send(modbus)
+            self.read_registers_receive(modbus)
 
     def read_registers_send(self, modbus):
         if self.modbus_type in 'cd':
@@ -138,7 +147,7 @@ class Access:
         logging.debug('← %s', words)
 
         if self.modbus_type in 'cd':
-            self.values = [[words]]
+            self.values = [(w,) for w in words]
         else:
             packed = struct.pack('>{}H'.format(len(words)), *words)
 
@@ -149,18 +158,18 @@ class Access:
                 self.values.append(struct.unpack(pack, packed[:size]))
                 packed = packed[size:]
 
-    def write_registers(self, modbus):
+    def write_registers_send(self, modbus):
         if self.modbus_type == 'c':
-            if len(self.values) == 1:
+            if len(self.values_to_write) == 1:
                 # TODO validate value, should be boolean
-                message = modbus.protocol.write_single_coil(modbus.slave_id, self.address(), int(self.values[0]))
+                message = modbus.protocol.write_single_coil(modbus.slave_id, self.address(), int(self.values_to_write[0]))
             else:
                 message = modbus.protocol.write_multiple_coils(modbus.slave_id, self.address(),
-                                                               [int(v) for v in self.values])
+                                                               [int(v) for v in self.values_to_write])
         else:
             words = []
 
-            for pack_type, value in zip(self.pack_types, self.values):
+            for pack_type, value in zip(self.pack_types, self.values_to_write):
                 n_bytes = struct.calcsize(pack_type)
                 assert n_bytes % 2 == 0
 
@@ -182,11 +191,14 @@ class Access:
     def write_registers_receive(self, modbus):
         modbus.receive(self.request)
 
-    def __repr__(self):
+    def __str__(self):
         return '{}@{}/{}{}'.format(self.modbus_type,
                                    self.address(),
                                    self.pack_types,
-                                   '={}'.format(self.values) if self.write else '')
+                                   '={}'.format(self.values_to_write) if self.write else '')
+
+    def __repr__(self):
+        return 'Access({!r}, {!r}, {!r}, {!r}, {!r})'.format(self.modbus_type, self.addresses, self.pack_types, self.values_to_write, self.names)
 
 
 def by_type(access):
@@ -247,7 +259,7 @@ def parse_access(register, name, write, value):
     if write and modbus_type not in 'ch':
         raise ValueError("Invalid Modbus type '{}'. Only coils and holding registers are writable".format(modbus_type))
 
-    return Access(name, modbus_type, write, address, pack_type, value, presenter)
+    return Access(modbus_type, [address], [pack_type], [value], names=[name], presenters=[presenter])
 
 
 def parse_accesses(s, definitions):
