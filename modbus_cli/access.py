@@ -23,7 +23,7 @@ def dump(xs):
 class Access:
     def __init__(self, modbus_type, addresses, pack_types, values=None, names=None, presenters=None):
         self.modbus_type = modbus_type
-        self.values_to_write = values
+        self.values_to_write = values or [None] * len(addresses)
         self.addresses = addresses
         self.pack_types = pack_types
         self.names = names or [None] * len(addresses)
