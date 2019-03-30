@@ -29,9 +29,19 @@ Access both TCP and RTU (i.e. serial) devices and encode and decode types
 larger than 16 bits (e.g. floats) into Modbus 16 bits registers.
 
 Optionally access registers by symbolic names, as defined in a registers file.
+Symbolic names for enumerations and bitfields are supported too.
+
+Designed to work nicely with other standard UNIX tools (``watch``, ``socat``,
+etc.), see the examples.
 
 Implemented in python on top of the protocol implementation provided by the
 umodbus python library.
+
+INSTALL
+=======
+
+Regular python install, either ``pip install modbus_cli`` to install from pypi
+or ``python setup.py install`` to install from source.
 
 OPTIONS
 =======
@@ -117,6 +127,11 @@ Read multiple registers
 To read (or write) multiple registers simply list them on the command line::
 
   $ modbus $IP_OF_MODBUS_DEVICE 100 c@2000
+
+When performing access to multiple contiguous registers, one single modbus operation is performed.
+
+When multiple modbus operations are needed, they are all initiated at once, and
+the results are collected as they arrive.
 
 More examples of the access syntax
 ----------------------------------
