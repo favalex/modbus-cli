@@ -43,7 +43,7 @@ class Access:
 
     @property
     def write(self):
-        return bool(self.values_to_write)
+        return any(x is not None for x in self.values_to_write)
 
     def size(self):
         """Number of registers"""
