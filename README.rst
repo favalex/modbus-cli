@@ -18,7 +18,7 @@ Access Modbus devices from the command line
 SYNOPSIS
 ========
 
-  modbus [-h] [-r REGISTERS] [-s SLAVE_ID] [-b BAUD] [-p STOP_BITS] [-v] device access [access ...]
+  modbus [-h] [-r REGISTERS] [-s SLAVE_ID] [-b BAUD] [-p STOP_BITS] [-P {e,o,n}] [-v] device access [access ...]
 
 DESCRIPTION
 ===========
@@ -56,6 +56,7 @@ access
 -v, --verbose                Print on screen the bytes transferred on the wire.
 -b BAUD, --baud=BAUD         Set the baud rate for serial connections.
 -p BITS, --stop-bits=BITS    Set the number of stop bits for serial connections.
+-P PARITY, --parity=PARITY   Set the parity for serial connections: (e)ven, (o)dd or (n)one
 -h, --help                   Show this help message and exit.
 
 ACCESS SYNTAX
