@@ -13,7 +13,7 @@ from modbus_cli.access import parse_accesses
 
 def connect_to_device(args):
     if args.device[0] == '/':
-        modbus = ModbusRtu(args.device, args.baud, args.stop_bits, args.slave_id)
+        modbus = ModbusRtu(args.device, args.baud, args.parity, args.stop_bits, args.slave_id)
     else:
         port = 502
         parts = args.device.split(':')
@@ -43,6 +43,7 @@ def main():
     parser.add_argument('-s', '--slave-id', type=int)
     parser.add_argument('-b', '--baud', type=int, default=19200)
     parser.add_argument('-p', '--stop-bits', type=int, default=1)
+    parser.add_argument('-P', '--parity', choices=['e', 'o', 'n'], default='n')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('device')
     parser.add_argument('access', nargs='+')
