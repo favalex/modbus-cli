@@ -180,7 +180,10 @@ class Access:
 
                 words.extend([h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2)])
 
-            message = modbus.protocol.write_multiple_registers(modbus.slave_id, self.address(), words)
+            if len(self.values_to_write) == 1:
+                message = modbus.protocol.write_single_register(modbus.slave_id, self.address(), words[0])
+            else:
+                message = modbus.protocol.write_multiple_registers(modbus.slave_id, self.address(), words)
 
         logging.debug('→ < %s >', dump(message))
 
