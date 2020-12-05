@@ -105,6 +105,9 @@ BINARY_TYPE = <pack format>
 VALUE = <number>
   The value to be written to the register. If not present, the register will be read instead.
 
+  If only one register is written to, the modbus function ``6 (0x6)``, "write single register" is used. 
+  If multiple registers are written to, the modbus function ``16 (0x10)``, "write multiple registers" is used.
+
 EXAMPLES
 ========
 
