@@ -33,20 +33,22 @@ class ModbusRtu:
             raise RuntimeError('timeout')
         slave_id, function = response
 
-        if function in (1, 2, 3, 4):
-            # Functions with variable size
-            response += self.connection.read(1)
-            count = 2 + response[-1]
-            response += self.connection.read(count)
-        elif function in (5, 6, 15):
-            # Function with fixed size
-            response += self.connection.read(6)
-        elif function & 0x80:
-            response += self.connection.read(3)
-        else:
-            raise NotImplementedError('RTU function {}'.format(function))
-
-        logging.debug('← < %s > %s bytes', dump(response), len(response))
+        try:
+            if function in (1, 2, 3, 4):
+                # Functions with variable size
+                response += self.connection.read(1)
+                count = 2 + response[-1]
+                response += self.connection.read(count)
+            elif function in (5, 6, 15, 16):
+                # Function with fixed size
+                response += self.connection.read(6)
+            elif function & 0x80:
+                response += self.connection.read(3)
+            else:
+                response += self.connection.read(1024)
+                raise NotImplementedError('RTU function {}'.format(function))
+        finally:
+            logging.debug('← < %s > %s bytes', dump(response), len(response))
 
         return self.protocol.parse_response_adu(response, request)
 
