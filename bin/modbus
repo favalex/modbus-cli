@@ -5,12 +5,35 @@ import sys
 import os
 import logging
 
-import colorama
+import colorama as clr
 
 from modbus_cli.definitions import Definitions
 from modbus_cli.modbus_rtu import ModbusRtu
 from modbus_cli.modbus_tcp import ModbusTcp
 from modbus_cli.access import parse_accesses
+
+
+class ColourHandler(logging.Handler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.formatter = logging.Formatter('%(style)s%(message)s'+clr.Style.RESET_ALL)
+
+    def emit(self, record):
+
+        if record.levelname == "DEBUG":
+            record.style = clr.Style.DIM
+        elif record.levelname == "WARNING":
+            record.style = clr.Style.BRIGHT
+        elif record.levelname == "ERROR":
+            record.style = clr.Style.BRIGHT+clr.Fore.RED
+        elif record.levelname == "CRITICAL":
+            record.style = clr.Style.BRIGHT+clr.Back.BLUE+clr.Fore.RED
+        else:
+            record.style = clr.Style.NORMAL
+
+        msg = self.format(record)
+
+        print(msg)
 
 
 def connect_to_device(args):
@@ -59,10 +82,20 @@ def main():
     parser.add_argument('access', nargs='+')
     args = parser.parse_args()
 
-    colorama.init()
+    clr.init()
     try:
+
+        mainLogger = logging.getLogger()            # Main logger
+
+
+
         if args.verbose:
-            logging.basicConfig(format=colorama.Style.DIM + '%(message)s' + colorama.Style.RESET_ALL, level=logging.DEBUG)
+            mainLogger.setLevel(logging.DEBUG)
+        else:
+            mainLogger.setLevel(logging.INFO)
+
+        ch = ColourHandler()
+        mainLogger.addHandler(ch)
 
         definitions = Definitions()
         definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
@@ -71,6 +104,6 @@ def main():
 
     finally:
         # restore stdout/stderr if colorama has modified them (mostly on windows)
-        colorama.deinit()
+        clr.deinit()
 
 main()
