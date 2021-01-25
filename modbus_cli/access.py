@@ -79,7 +79,7 @@ class Access:
         for label, value, presenter in zip(self.labels(), self.values, self.presenters):
             if len(value) == 1:
                 value = value[0]
-            print('{}: {} {}'.format(label, value, self.present_value(value, presenter, definitions)))
+            logging.info('{}: {} {}'.format(label, value, self.present_value(value, presenter, definitions)))
 
     def present_value(self, value, presenter, definitions):
         if type(value) != int:
