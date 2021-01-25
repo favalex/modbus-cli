@@ -83,11 +83,9 @@ def main():
     args = parser.parse_args()
 
     clr.init()
+
     try:
-
         mainLogger = logging.getLogger()            # Main logger
-
-
 
         if args.verbose:
             mainLogger.setLevel(logging.DEBUG)
@@ -104,6 +102,7 @@ def main():
 
     finally:
         # restore stdout/stderr if colorama has modified them (mostly on windows)
+        # Leaving this out doesn't seem to hurt anything, but they say to call deinit, so we call deinit.
         clr.deinit()
 
 main()
