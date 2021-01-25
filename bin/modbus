@@ -5,6 +5,8 @@ import sys
 import os
 import logging
 
+import colorama
+
 from modbus_cli.definitions import Definitions
 from modbus_cli.modbus_rtu import ModbusRtu
 from modbus_cli.modbus_tcp import ModbusTcp
@@ -13,7 +15,14 @@ from modbus_cli.access import parse_accesses
 
 def connect_to_device(args):
     if args.device[0] == '/':
-        modbus = ModbusRtu(args.device, args.baud, args.parity, args.stop_bits, args.slave_id)
+        modbus = ModbusRtu(
+                device    = args.device,
+                baud      = args.baud,
+                parity    = args.parity,
+                stop_bits = args.stop_bits,
+                slave_id  = args.slave_id,
+                timeout   = args.timeout
+            )
     else:
         port = 502
         parts = args.device.split(':')
@@ -45,17 +54,23 @@ def main():
     parser.add_argument('-p', '--stop-bits', type=int, default=1)
     parser.add_argument('-P', '--parity', choices=['e', 'o', 'n'], default='n')
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-t', '--timeout', type=float, default=5.0)
     parser.add_argument('device')
     parser.add_argument('access', nargs='+')
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(format='\033[90m%(message)s\033[39m', level=logging.DEBUG)
+    colorama.init()
+    try:
+        if args.verbose:
+            logging.basicConfig(format=colorama.Style.DIM + '%(message)s' + colorama.Style.RESET_ALL, level=logging.DEBUG)
 
-    definitions = Definitions()
-    definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
+        definitions = Definitions()
+        definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
 
-    connect_to_device(args).perform_accesses(parse_accesses(args.access, definitions), definitions).close()
+        connect_to_device(args).perform_accesses(parse_accesses(args.access, definitions), definitions).close()
 
+    finally:
+        # restore stdout/stderr if colorama has modified them (mostly on windows)
+        colorama.deinit()
 
 main()
