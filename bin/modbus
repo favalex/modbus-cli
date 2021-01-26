@@ -39,12 +39,12 @@ class ColourHandler(logging.Handler):
 def connect_to_device(args):
     if args.device[0] == '/':
         modbus = ModbusRtu(
-                device    = args.device,
-                baud      = args.baud,
-                parity    = args.parity,
+                device = args.device,
+                baud = args.baud,
+                parity = args.parity,
                 stop_bits = args.stop_bits,
-                slave_id  = args.slave_id,
-                timeout   = args.timeout
+                slave_id = args.slave_id,
+                timeout = args.timeout
             )
     else:
         port = 502
