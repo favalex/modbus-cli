@@ -4,10 +4,11 @@ from .access import dump
 
 
 class ModbusRtu:
-    def __init__(self, device, baud, parity, stop_bits, slave_id):
+    def __init__(self, device, baud, parity, stop_bits, slave_id, timeout):
         from serial import PARITY_EVEN, PARITY_ODD, PARITY_NONE
         parity_opts = { 'e': PARITY_EVEN, 'o': PARITY_ODD, 'n': PARITY_NONE }
         self.device = device
+        self.timeout = timeout
         self.baud = baud
         self.parity = parity_opts[parity]
         self.stop_bits = stop_bits
@@ -21,8 +22,16 @@ class ModbusRtu:
     def connect(self):
         from serial import Serial
 
+        logging.debug("Serial port %s. Parameters: %s baud, %s stop bit(s), parity: %s, timeout %ss.",
+                self.device,
+                self.baud,
+                self.stop_bits,
+                self.parity,
+                self.timeout,
+            )
+
         self.connection = Serial(port=self.device, baudrate=self.baud, parity=self.parity,
-                                 stopbits=self.stop_bits, bytesize=8, timeout=5)
+                                 stopbits=self.stop_bits, bytesize=8, timeout=self.timeout)
 
     def send(self, request):
         self.connection.write(request)

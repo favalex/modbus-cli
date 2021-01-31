@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name='modbus_cli',
-      version='0.1.5',
+      version='0.1.6',
       description='Command line tool to access Modbus devices',
       long_description=readme(),
       url='http://github.com/favalex/modbus-cli',
@@ -16,7 +16,7 @@ setup(name='modbus_cli',
       license='MPL 2.0',
       packages=['modbus_cli'],
       scripts=['bin/modbus'],
-      install_requires=['umodbus'],
+      install_requires=['umodbus', 'colorama'],
       zip_safe=False,
       classifiers=[
           'Development Status :: 4 - Beta',
