@@ -12,7 +12,7 @@ class ModbusRtu:
         self.baud = baud
         self.parity = parity_opts[parity]
         self.stop_bits = stop_bits
-        if not slave_id:
+        if slave_id is None:
             slave_id = 1
         self.slave_id = slave_id
 
