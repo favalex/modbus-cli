@@ -121,6 +121,29 @@ class TestAccess(unittest.TestCase):
     def test_presenter(self):
         pass
 
+    def test_endianness(self):
+        modbus = mocked_modbus()
+        modbus.receive = Mock(return_value=[0x1122, 0x3344])
+
+        def perform(byte_order, *fields):
+            addresses = list(range(len(fields)))
+            access = Access('h', addresses, fields, byte_order=byte_order)
+            access.perform(modbus)
+            return access.values
+
+        # big endian 16/32 bit fields
+        self.assertEqual(perform('be', '>H', '>H'), [(0x1122, ), (0x3344, )])
+        self.assertEqual(perform('be', '>I'), [(0x11223344, )])
+
+        # little endian 16/32 bit fields
+        self.assertEqual(perform('le', '<H', '<H'), [(0x2211, ), (0x4433, )])
+        self.assertEqual(perform('le', '<I'), [(0x44332211, )])
+
+        # mixed endian 16/32 bit fields
+        self.assertEqual(perform('mixed', '<H', '<H'), [(0x1122, ), (0x3344, )])
+        self.assertEqual(perform('mixed', '<I'), [(0x33441122, )])
+
+
 
 if __name__ == '__main__':
     unittest.main()

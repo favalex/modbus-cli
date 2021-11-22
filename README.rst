@@ -57,6 +57,7 @@ access
 -b BAUD, --baud=BAUD         Set the baud rate for serial connections.
 -p BITS, --stop-bits=BITS    Set the number of stop bits for serial connections.
 -P PARITY, --parity=PARITY   Set the parity for serial connections: (e)ven, (o)dd or (n)one
+-B ORDER, --byte-order ORDER Set the byte order to one of 'le' (little endian), 'be' (big endian) or 'mixed'
 -h, --help                   Show this help message and exit.
 
 ACCESS SYNTAX
@@ -100,7 +101,9 @@ BINARY_TYPE = <pack format>
   ``f`` 32 bits IEEE 754 float
   ===== ====
 
-  The default byte order is big-endian, use a ``<`` prefix in the format to specify little-endian.
+  The default byte order is big-endian.
+  To use little endian, use a ``<`` prefix, or ``--byte-order=le``.
+  To use mixed endian (little endian, but individual 16 bit registers are big endian), use ``--byte-order=mixed``.
 
 VALUE = <number>
   The value to be written to the register. If not present, the register will be read instead.

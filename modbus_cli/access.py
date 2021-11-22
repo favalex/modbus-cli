@@ -21,13 +21,14 @@ def dump(xs):
 
 
 class Access:
-    def __init__(self, modbus_type, addresses, pack_types, values=None, names=None, presenters=None):
+    def __init__(self, modbus_type, addresses, pack_types, values=None, names=None, presenters=None, byte_order='be'):
         self.modbus_type = modbus_type
         self.values_to_write = values or [None] * len(addresses)
         self.addresses = addresses
         self.pack_types = pack_types
         self.names = names or [None] * len(addresses)
         self.presenters = presenters or [None] * len(addresses)
+        self.byte_order = byte_order
 
     def address(self):
         return self.addresses[0]
@@ -149,7 +150,14 @@ class Access:
         if self.modbus_type in 'cd':
             self.values = [(w,) for w in words]
         else:
-            packed = struct.pack('>{}H'.format(len(words)), *words)
+            if self.byte_order == 'mixed':
+                # reinterpret each big endian register as little endian
+                repack_byte_order = '<'
+            else:
+                # just pack it again to the same stream of bytes we read
+                repack_byte_order = '>'
+
+            packed = struct.pack('{}{}H'.format(repack_byte_order, len(words)), *words)
 
             self.values = []
 
@@ -231,7 +239,7 @@ def group_accesses(accesses):
     return grouped
 
 
-def parse_access(register, name, write, value):
+def parse_access(register, name, write, value, byte_order):
     modbus_type, address, pack_type, presenter = re.match(REGISTER_RE, register).groups()
 
     if not address:
@@ -247,14 +255,17 @@ def parse_access(register, name, write, value):
         if modbus_type in 'cd':
             pack_type = 'B'
         else:
-            pack_type = '!H'
+            pack_type = 'H'
     else:
         pack_type = pack_type[1:]
 
     address = int(address)
 
     if pack_type[0] not in '@=<>!':
-        pack_type = '!' + pack_type
+        if byte_order in ('le', 'mixed'):
+            pack_type = '<' + pack_type
+        elif byte_order == 'be':
+            pack_type = '!' + pack_type
 
     modbus_type = modbus_type.lower()
     if modbus_type not in 'cdhi':
@@ -262,10 +273,10 @@ def parse_access(register, name, write, value):
     if write and modbus_type not in 'ch':
         raise ValueError("Invalid Modbus type '{}'. Only coils and holding registers are writable".format(modbus_type))
 
-    return Access(modbus_type, [address], [pack_type], [value], names=[name], presenters=[presenter])
+    return Access(modbus_type, [address], [pack_type], [value], names=[name], presenters=[presenter], byte_order=byte_order)
 
 
-def parse_accesses(s, definitions):
+def parse_accesses(s, definitions, byte_order='be'):
     accesses = []
 
     for access in s:
@@ -279,14 +290,14 @@ def parse_accesses(s, definitions):
             write = True
 
         if re.fullmatch(REGISTER_RE, register):
-            access = parse_access(register, None, write, value)
+            access = parse_access(register, None, write, value, byte_order)
             if access:
                 accesses.append(access)
         else:
             register_re = re.compile(fnmatch.translate(register))
             for name, definition in definitions.registers.items():
                 if register_re.match(name):
-                    access = parse_access(definition, name, write, value)
+                    access = parse_access(definition, name, write, value, byte_order)
                     if access:
                         accesses.append(access)
 
