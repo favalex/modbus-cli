@@ -121,28 +121,54 @@ class TestAccess(unittest.TestCase):
     def test_presenter(self):
         pass
 
-    def test_endianness(self):
+    def test_endianness_read(self):
         modbus = mocked_modbus()
+
+        # given these two 16 bit registers, what do we interpret?
         modbus.receive = Mock(return_value=[0x1122, 0x3344])
 
-        def perform(byte_order, *fields):
+        def perform(byte_order, fields):
             addresses = list(range(len(fields)))
             access = Access('h', addresses, fields, byte_order=byte_order)
             access.perform(modbus)
             return access.values
 
         # big endian 16/32 bit fields
-        self.assertEqual(perform('be', '>H', '>H'), [(0x1122, ), (0x3344, )])
-        self.assertEqual(perform('be', '>I'), [(0x11223344, )])
+        self.assertEqual(perform('be', ['>H', '>H']), [(0x1122, ), (0x3344, )])
+        self.assertEqual(perform('be', ['>I']), [(0x11223344, )])
 
         # little endian 16/32 bit fields
-        self.assertEqual(perform('le', '<H', '<H'), [(0x2211, ), (0x4433, )])
-        self.assertEqual(perform('le', '<I'), [(0x44332211, )])
+        self.assertEqual(perform('le', ['<H', '<H']), [(0x2211, ), (0x4433, )])
+        self.assertEqual(perform('le', ['<I']), [(0x44332211, )])
 
         # mixed endian 16/32 bit fields
-        self.assertEqual(perform('mixed', '<H', '<H'), [(0x1122, ), (0x3344, )])
-        self.assertEqual(perform('mixed', '<I'), [(0x33441122, )])
+        self.assertEqual(perform('mixed', ['<H', '<H']), [(0x1122, ), (0x3344, )])
+        self.assertEqual(perform('mixed', ['<I']), [(0x33441122, )])
 
+    def test_endianness_write(self):
+        modbus = mocked_modbus()
+
+        # given these user inputs, what 16 bit registers are actually committed?
+        values16 = ["0x1122", "0x3344"]
+        values32 = ["0x11223344"]
+
+        def perform(byte_order, fields, values):
+            addresses = list(range(len(fields)))
+            access = Access('h', addresses, fields, values=values, byte_order=byte_order)
+            access.perform(modbus)
+            return modbus.protocol.write_multiple_registers.call_args.args[2]
+
+        # big endian 16/32 bit fields
+        self.assertEqual(perform('be', ['>H', '>H'], values16), [0x1122, 0x3344])
+        self.assertEqual(perform('be', ['>I'], values32), [0x1122, 0x3344])
+
+        # little endian 16/32 bit fields
+        self.assertEqual(perform('le', ['<H', '<H'], values16), [0x2211, 0x4433])
+        self.assertEqual(perform('le', ['<I'], values32), [0x4433, 0x2211])
+
+        # mixed endian 16/32 bit fields
+        self.assertEqual(perform('mixed', ['<H', '<H'], values16), [0x1122, 0x3344])
+        self.assertEqual(perform('mixed', ['<I'], values32), [0x3344, 0x1122])
 
 
 if __name__ == '__main__':

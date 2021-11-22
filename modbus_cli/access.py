@@ -177,6 +177,11 @@ class Access:
         else:
             words = []
 
+            if self.byte_order == 'mixed':
+                register_fmt = '<H'
+            else:
+                register_fmt = '>H'
+
             for pack_type, value in zip(self.pack_types, self.values_to_write):
                 n_bytes = struct.calcsize(pack_type)
                 assert n_bytes % 2 == 0
@@ -186,7 +191,10 @@ class Access:
                 else:
                     value = int(value, 0)
 
-                words.extend([h << 8 | l for h, l in grouper(struct.pack(pack_type, value), 2)])
+                words.extend([
+                    struct.unpack(register_fmt, bytes(byte_pair))[0]
+                    for byte_pair in grouper(struct.pack(pack_type, value), 2)
+                ])
 
             if len(words) == 1:
                 message = modbus.protocol.write_single_register(modbus.slave_id, self.address(), words[0])
