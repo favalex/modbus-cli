@@ -12,9 +12,6 @@ Access Modbus devices from the command line
 :Version: 0.1.7
 :Manual section: 1
 
-.. image:: https://travis-ci.org/favalex/modbus-cli.svg?branch=master
-    :target: https://travis-ci.org/favalex/modbus-cli
-
 SYNOPSIS
 ========
 
