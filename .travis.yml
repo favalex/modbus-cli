@@ -1,5 +1,5 @@
 language: python
 python:
-  - "3.4"
+  - "3.9"
 install: pip install -r requirements.txt
 script: python -m unittest discover tests
