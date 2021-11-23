@@ -52,13 +52,13 @@ device
 access
   One or more read or write operations. See ACCESS SYNTAX below.
 
--r FILE, --registers=FILE    Read registers definitions from FILE. Can be specified multiple times.
--v, --verbose                Print on screen the bytes transferred on the wire.
--b BAUD, --baud=BAUD         Set the baud rate for serial connections.
--p BITS, --stop-bits=BITS    Set the number of stop bits for serial connections.
--P PARITY, --parity=PARITY   Set the parity for serial connections: (e)ven, (o)dd or (n)one
--B ORDER, --byte-order ORDER Set the byte order to one of 'le' (little endian), 'be' (big endian) or 'mixed'
--h, --help                   Show this help message and exit.
+-r FILE, --registers=FILE     Read registers definitions from FILE. Can be specified multiple times.
+-v, --verbose                 Print on screen the bytes transferred on the wire.
+-b BAUD, --baud=BAUD          Set the baud rate for serial connections.
+-p BITS, --stop-bits=BITS     Set the number of stop bits for serial connections.
+-P PARITY, --parity=PARITY    Set the parity for serial connections: (e)ven, (o)dd or (n)one
+-B ORDER, --byte-order=ORDER  Set the byte order to one of 'le' (little endian), 'be' (big endian) or 'mixed'
+-h, --help                    Show this help message and exit.
 
 ACCESS SYNTAX
 =============
