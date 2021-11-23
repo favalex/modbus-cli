@@ -170,7 +170,8 @@ class Access:
         if self.modbus_type == 'c':
             if len(self.values_to_write) == 1:
                 # TODO validate value, should be boolean
-                message = modbus.protocol.write_single_coil(modbus.slave_id, self.address(), int(self.values_to_write[0]))
+                message = modbus.protocol.write_single_coil(
+                        modbus.slave_id, self.address(), int(self.values_to_write[0]))
             else:
                 message = modbus.protocol.write_multiple_coils(modbus.slave_id, self.address(),
                                                                [int(v) for v in self.values_to_write])
@@ -217,7 +218,8 @@ class Access:
                                    '={}'.format(self.values_to_write) if self.write else '')
 
     def __repr__(self):
-        return 'Access({!r}, {!r}, {!r}, {!r}, {!r})'.format(self.modbus_type, self.addresses, self.pack_types, self.values_to_write, self.names)
+        return 'Access({!r}, {!r}, {!r}, {!r}, {!r})'.format(
+                self.modbus_type, self.addresses, self.pack_types, self.values_to_write, self.names)
 
 
 def by_type(access):
@@ -281,7 +283,8 @@ def parse_access(register, name, write, value, byte_order):
     if write and modbus_type not in 'ch':
         raise ValueError("Invalid Modbus type '{}'. Only coils and holding registers are writable".format(modbus_type))
 
-    return Access(modbus_type, [address], [pack_type], [value], names=[name], presenters=[presenter], byte_order=byte_order)
+    return Access(modbus_type, [address], [pack_type], [value],
+                  names=[name], presenters=[presenter], byte_order=byte_order)
 
 
 def parse_accesses(s, definitions, byte_order='be'):
