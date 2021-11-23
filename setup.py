@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name='modbus_cli',
-      version='0.1.6',
+      version='0.1.7',
       description='Command line tool to access Modbus devices',
       long_description=readme(),
       url='http://github.com/favalex/modbus-cli',
