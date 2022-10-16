@@ -51,7 +51,7 @@ class Access:
         total = 0
         for p in self.pack_types:
             size = struct.calcsize(p)
-            if self.modbus_type in ('h', 'i'):
+            if self.modbus_type in ('h', 'H', 'i'):
                 assert size % 2 == 0
                 size //= 2
 
@@ -109,7 +109,7 @@ class Access:
             self.read_registers_receive(modbus)
 
     def read_registers_send(self, modbus):
-        if self.modbus_type in 'cd':
+        if self.modbus_type in 'cCd':
             n_registers = 0
             for pack_type in self.pack_types:
                 n_registers += struct.calcsize(pack_type)
@@ -124,8 +124,10 @@ class Access:
 
         reader = {
                 'c': 'read_coils',
+                'C': 'read_coils',
                 'd': 'read_discrete_inputs',
                 'h': 'read_holding_registers',
+                'H': 'read_holding_registers',
                 'i': 'read_input_registers',
                 }[self.modbus_type]
 
@@ -175,6 +177,9 @@ class Access:
             else:
                 message = modbus.protocol.write_multiple_coils(modbus.slave_id, self.address(),
                                                                [int(v) for v in self.values_to_write])
+        elif self.modbus_type == 'C':
+            message = modbus.protocol.write_multiple_coils(modbus.slave_id, self.address(),
+                                                            [int(v) for v in self.values_to_write])
         else:
             words = []
 
@@ -197,7 +202,7 @@ class Access:
                     for byte_pair in grouper(struct.pack(pack_type, value), 2)
                 ])
 
-            if len(words) == 1:
+            if self.modbus_type == 'h' and len(words) == 1:
                 message = modbus.protocol.write_single_register(modbus.slave_id, self.address(), words[0])
             else:
                 message = modbus.protocol.write_multiple_registers(modbus.slave_id, self.address(), words)
@@ -262,7 +267,7 @@ def parse_access(register, name, write, value, byte_order):
         modbus_type = modbus_type[:-1]
 
     if not pack_type:
-        if modbus_type in 'cd':
+        if modbus_type in 'cCd':
             pack_type = 'B'
         else:
             pack_type = 'H'
@@ -277,10 +282,9 @@ def parse_access(register, name, write, value, byte_order):
         elif byte_order == 'be':
             pack_type = '!' + pack_type
 
-    modbus_type = modbus_type.lower()
-    if modbus_type not in 'cdhi':
-        raise ValueError("Invalid Modbus type '{}'. Valid ones are 'cdhi'".format(modbus_type))
-    if write and modbus_type not in 'ch':
+    if modbus_type not in 'cCdhHi':
+        raise ValueError("Invalid Modbus type '{}'. Valid ones are 'cCdhHi'".format(modbus_type))
+    if write and modbus_type not in 'cChH':
         raise ValueError("Invalid Modbus type '{}'. Only coils and holding registers are writable".format(modbus_type))
 
     return Access(modbus_type, [address], [pack_type], [value],
