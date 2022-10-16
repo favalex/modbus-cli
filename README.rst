@@ -68,19 +68,23 @@ Mnemonic: access the register(s) of MODBUS_TYPE starting *at* ADDRESS,
 interpreting them as BINARY_TYPE. The ``/`` syntax is inspired by gdb (but the
 available types are different.)
 
-MODBUS_TYPE = h|i|c|d
+MODBUS_TYPE = h|H|i|c|C|d
   The modbus type, one of
 
-  ===== ================ ======= =========
-  code  name             size    writable
-  ===== ================ ======= =========
-  ``h`` holding register 16 bits yes
-  ``i`` input register   16 bits no
-  ``c`` coil             1 bit   yes
-  ``d`` discrete input   1 bit   no
-  ===== ================ ======= =========
+  ========== ================ ======= =========
+  code       name             size    writable
+  ========== ================ ======= =========
+  ``h or H`` holding register 16 bits yes
+  ``i``      input register   16 bits no
+  ``c or C`` coil             1 bit   yes
+  ``d``      discrete input   1 bit   no
+  ========== ================ ======= =========
 
-The default modbus type is holding register.
+  Types ``C`` and ``H`` force the use of "write multiple registers" even when accessing a single register.  This
+  is useful for some devices that don't support singular write functions.
+
+
+  The default modbus type is holding register.
 
 ADDRESS = <number>
   0-based register address
@@ -105,7 +109,7 @@ BINARY_TYPE = <pack format>
 VALUE = <number>
   The value to be written to the register. If not present, the register will be read instead.
 
-  If only one register is written to, the modbus function ``6 (0x6)``, "write single register" is used. 
+  If only one register is written to, the modbus function ``6 (0x6)``, "write single register" is used.
   If multiple registers are written to, the modbus function ``16 (0x10)``, "write multiple registers" is used.
 
 EXAMPLES
