@@ -5,9 +5,10 @@ REGISTER_RE = re.compile(r'([cCdhHi]@)?(\d+)(/[^:|]*)?([:|].*)?')
 
 
 class Definitions:
-    def __init__(self):
+    def __init__(self, silent):
         self.registers = {}
         self.presenters = {}
+        self.silent = silent
 
     def parse(self, filenames):
         for filename in filenames:
@@ -24,7 +25,8 @@ class Definitions:
                             self.parse_line(accumulated_line)
                             accumulated_line = line
                     self.parse_line(accumulated_line)
-        logging.info('Parsed %d registers definitions from %d files', len(self.registers), len(filenames))
+        if not self.silent: 
+            logging.info('Parsed %d registers definitions from %d files', len(self.registers), len(filenames))
 
     def parse_line(self, line):
         if not line:

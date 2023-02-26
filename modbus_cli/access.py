@@ -21,7 +21,7 @@ def dump(xs):
 
 
 class Access:
-    def __init__(self, modbus_type, addresses, pack_types, values=None, names=None, presenters=None, byte_order='be'):
+    def __init__(self, modbus_type, addresses, pack_types, values=None, names=None, presenters=None, byte_order='be', silent=False):
         self.modbus_type = modbus_type
         self.values_to_write = values or [None] * len(addresses)
         self.addresses = addresses
@@ -29,6 +29,7 @@ class Access:
         self.names = names or [None] * len(addresses)
         self.presenters = presenters or [None] * len(addresses)
         self.byte_order = byte_order
+        self.silent = silent
 
     def address(self):
         return self.addresses[0]
@@ -80,7 +81,10 @@ class Access:
         for label, value, presenter in zip(self.labels(), self.values, self.presenters):
             if len(value) == 1:
                 value = value[0]
-            logging.info('{}: {} {}'.format(label, value, self.present_value(value, presenter, definitions)))
+            if self.silent:
+                logging.info('{}'.format(value))
+            else:
+                logging.info('{}: {} {}'.format(label, value, self.present_value(value, presenter, definitions)))
 
     def present_value(self, value, presenter, definitions):
         if type(value) != int:
@@ -254,7 +258,7 @@ def group_accesses(accesses):
     return grouped
 
 
-def parse_access(register, name, write, value, byte_order):
+def parse_access(register, name, write, value, byte_order, silent):
     modbus_type, address, pack_type, presenter = re.match(REGISTER_RE, register).groups()
 
     if not address:
@@ -288,10 +292,10 @@ def parse_access(register, name, write, value, byte_order):
         raise ValueError("Invalid Modbus type '{}'. Only coils and holding registers are writable".format(modbus_type))
 
     return Access(modbus_type, [address], [pack_type], [value],
-                  names=[name], presenters=[presenter], byte_order=byte_order)
+                  names=[name], presenters=[presenter], byte_order=byte_order, silent=silent)
 
 
-def parse_accesses(s, definitions, byte_order='be'):
+def parse_accesses(s, definitions, byte_order='be', silent=False):
     accesses = []
 
     for access in s:
@@ -305,14 +309,14 @@ def parse_accesses(s, definitions, byte_order='be'):
             write = True
 
         if re.fullmatch(REGISTER_RE, register):
-            access = parse_access(register, None, write, value, byte_order)
+            access = parse_access(register, None, write, value, byte_order, silent)
             if access:
                 accesses.append(access)
         else:
             register_re = re.compile(fnmatch.translate(register))
             for name, definition in definitions.registers.items():
                 if register_re.match(name):
-                    access = parse_access(definition, name, write, value, byte_order)
+                    access = parse_access(definition, name, write, value, byte_order, silent)
                     if access:
                         accesses.append(access)
 

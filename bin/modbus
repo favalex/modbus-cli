@@ -77,6 +77,7 @@ def main():
     parser.add_argument('-p', '--stop-bits', type=int, default=1)
     parser.add_argument('-P', '--parity', choices=['e', 'o', 'n'], default='n')
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-S', '--silent', action='store_true')
     parser.add_argument('-t', '--timeout', type=float, default=5.0)
     parser.add_argument('-B', '--byte-order', choices=['le', 'be', 'mixed'], default='be')
     parser.add_argument('device')
@@ -96,10 +97,10 @@ def main():
         ch = ColourHandler()
         mainLogger.addHandler(ch)
 
-        definitions = Definitions()
+        definitions = Definitions(args.silent)
         definitions.parse(args.registers + os.environ.get('MODBUS_DEFINITIONS', '').split(':'))
 
-        connect_to_device(args).perform_accesses(parse_accesses(args.access, definitions, args.byte_order), definitions).close()
+        connect_to_device(args).perform_accesses(parse_accesses(args.access, definitions, args.byte_order, args.silent), definitions).close()
 
     finally:
         # restore stdout/stderr if colorama has modified them (mostly on windows)
