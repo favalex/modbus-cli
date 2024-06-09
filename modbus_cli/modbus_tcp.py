@@ -14,26 +14,39 @@ class ModbusTcp:
         self.slave_id = slave_id
 
         import umodbus.client.tcp as modbus
+
         self.protocol = modbus
 
     def connect(self):
         import socket
-        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connection.settimeout(5)
-        self.connection.connect((self.host, self.port))
+
+        addr_info = socket.getaddrinfo(
+            self.host, self.port, socket.AF_UNSPEC, socket.SOCK_STREAM
+        )
+
+        for af, socktype, proto, _, sa in addr_info:
+            try:
+                self.connection = socket.socket(af, socktype, proto)
+                self.connection.connect(sa)
+                self.connection.settimeout(5)
+                return
+            except OSError:
+                if self.connection:
+                    self.connection.close()
+        raise OSError(f"Could not connect to {self.host}")
 
     def send(self, request):
         self.connection.send(request)
 
     def receive(self, request):
         header = self.receive_n(6)
-        seq, _, count = struct.unpack('>3H', header)
-        sent_seq = struct.unpack('>H', request[:2])[0]
+        seq, _, count = struct.unpack(">3H", header)
+        sent_seq = struct.unpack(">H", request[:2])[0]
         if seq != sent_seq:
-            logging.warn('Sequence mismatch: sent %s, received %s', sent_seq, seq)
+            logging.warn("Sequence mismatch: sent %s, received %s", sent_seq, seq)
         response = header + self.receive_n(count)
 
-        logging.debug('← < %s > %s bytes', dump(response), len(response))
+        logging.debug("← < %s > %s bytes", dump(response), len(response))
 
         return self.protocol.parse_response_adu(response, request)
 
