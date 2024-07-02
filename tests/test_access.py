@@ -47,6 +47,17 @@ class TestAccess(unittest.TestCase):
         self.assertEqual(':STATUS', it.presenter())
         self.assertEqual(4, it.size())
 
+    def test_full_hex(self):
+        it = parse_accesses(['i@0xa12B/<4H:STATUS'], None)
+        self.assertEqual(1, len(it))
+
+        it = it[0]
+        self.assertEqual('i', it.modbus_type)
+        self.assertEqual(0xa12b, it.address())
+        self.assertEqual('<4H', it.pack_type())
+        self.assertEqual(':STATUS', it.presenter())
+        self.assertEqual(4, it.size())
+
     def test_grouping(self):
         it = parse_accesses(['123', '124'], None)
         self.assertEqual(1, len(it))

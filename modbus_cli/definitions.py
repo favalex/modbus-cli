@@ -1,7 +1,7 @@
 import re
 import logging
 
-REGISTER_RE = re.compile(r'^([cCdhHi]@)?(\d+)(/[^:|]*)?([:|].*)?$')
+REGISTER_RE = re.compile(r'^([cCdhHi]@)?(\d+|0x[0-9a-fA-F]+)(/[^:|]*)?([:|].*)?$')
 
 
 class Definitions:
