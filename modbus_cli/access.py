@@ -278,7 +278,7 @@ def parse_access(register, name, write, value, byte_order, silent):
     else:
         pack_type = pack_type[1:]
 
-    address = int(address)
+    address = int(address, 0)
 
     if pack_type[0] not in '@=<>!':
         if byte_order in ('le', 'mixed'):

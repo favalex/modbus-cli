@@ -1,7 +1,7 @@
 import re
 import logging
 
-REGISTER_RE = re.compile(r'([cCdhHi]@)?(\d+)(/[^:|]*)?([:|].*)?')
+REGISTER_RE = re.compile(r'^([cCdhHi]@)?(\d+|0x[0-9a-fA-F]+)(/[^:|]*)?([:|].*)?$')
 
 
 class Definitions:
@@ -25,7 +25,7 @@ class Definitions:
                             self.parse_line(accumulated_line)
                             accumulated_line = line
                     self.parse_line(accumulated_line)
-        if not self.silent: 
+        if not self.silent:
             logging.info('Parsed %d registers definitions from %d files', len(self.registers), len(filenames))
 
     def parse_line(self, line):
