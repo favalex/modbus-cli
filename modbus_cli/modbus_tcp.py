@@ -6,12 +6,13 @@ from .access import dump
 
 
 class ModbusTcp:
-    def __init__(self, host, port, slave_id):
+    def __init__(self, host, port, slave_id, timeout):
         self.host = host
         self.port = port
         if not slave_id:
             slave_id = 255
         self.slave_id = slave_id
+        self.timeout = timeout
 
         import umodbus.client.tcp as modbus
 
@@ -28,7 +29,7 @@ class ModbusTcp:
             try:
                 self.connection = socket.socket(af, socktype, proto)
                 self.connection.connect(sa)
-                self.connection.settimeout(5)
+                self.connection.settimeout(self.timeout)
                 return
             except OSError:
                 if self.connection:
