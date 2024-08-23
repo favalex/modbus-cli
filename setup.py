@@ -15,8 +15,12 @@ setup(name='modbus_cli',
       author='Gabriele Favalessa',
       author_email='favalex@gmail.com',
       license='MPL 2.0',
-      packages=['modbus_cli'],
-      scripts=['bin/modbus'],
+      packages=['modbus', 'modbus_cli'],
+      entry_points={
+          'console_scripts': [
+              'modbus=modbus:main'
+          ],
+      },
       install_requires=['umodbus', 'colorama'],
       zip_safe=False,
       classifiers=[
