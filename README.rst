@@ -9,7 +9,7 @@ Access Modbus devices from the command line
 :Author: favalex@gmail.com
 :Date: 2023-02-26
 :Copyright: MPL 2.0
-:Version: 0.1.9
+:Version: 0.1.10
 :Manual section: 1
 
 SYNOPSIS
