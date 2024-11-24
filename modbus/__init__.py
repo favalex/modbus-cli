@@ -55,7 +55,7 @@ def connect_to_device(args):
             logging.error("Invalid device %r", args.device)
             sys.exit(1)
 
-        modbus = ModbusTcp(host, port, args.slave_id)
+        modbus = ModbusTcp(host, port, args.slave_id, args.timeout)
 
     modbus.connect()
 
