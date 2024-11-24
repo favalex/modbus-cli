@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name='modbus_cli',
-      version='0.1.9',
+      version='0.1.10',
       description='Command line tool to access Modbus devices',
       long_description=readme(),
       long_description_content_type='text/x-rst',
