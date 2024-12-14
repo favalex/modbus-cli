@@ -9,7 +9,7 @@ class ModbusTcp:
     def __init__(self, host, port, slave_id, timeout):
         self.host = host
         self.port = port
-        if not slave_id:
+        if slave_id is None:
             slave_id = 255
         self.slave_id = slave_id
         self.timeout = timeout
