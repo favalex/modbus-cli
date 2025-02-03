@@ -201,7 +201,7 @@ Each line contains a symbolic name followed by a register definition. The name
 and the definitions are separated by spaces, for example::
 
   status i@512:STATUS
-  leds 513:LEDS
+  leds 513|LEDS
 
 The file can also contain the possible values for an enumeration or a bitmask,
 for example::
