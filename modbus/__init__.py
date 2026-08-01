@@ -5,6 +5,7 @@ import sys
 import os
 import logging
 import urllib.parse
+import time
 
 import colorama as clr
 
@@ -59,8 +60,11 @@ def connect_to_device(args):
 
     modbus.connect()
 
-    return modbus
+    if args.delay_after_connect > 0:
+        logging.debug("Sleeping %r seconds after connect", args.delay_after_connect)
+        time.sleep(args.delay_after_connect)
 
+    return modbus
 
 def main():
     parser = argparse.ArgumentParser()
@@ -72,6 +76,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-S", "--silent", action="store_true")
     parser.add_argument("-t", "--timeout", type=float, default=5.0)
+    parser.add_argument("-d", "--delay-after-connect", type=float, default=0.0, metavar="SECONDS", help="Wait before sending commands to the device")
     parser.add_argument(
         "-B", "--byte-order", choices=["le", "be", "mixed"], default="be"
     )
