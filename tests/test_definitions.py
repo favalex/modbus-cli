@@ -24,5 +24,19 @@ class TestDefinitions(unittest.TestCase):
         self.assertEqual({':a_presenter': {0: 'x', 1: 'y'}}, it.presenters)
 
 
+
+    def test_parse_malformed_presenter_entry_skipped(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile('w', suffix='.modbus', delete=False) as f:
+            f.write('temp i@100/2H:temp_state\n')
+            f.write(':temp_state 0=OFF broken-token notanint=ZZZ\n')
+            path = f.name
+        try:
+            it = Definitions(True)
+            it.parse([path])
+        finally:
+            os.unlink(path)
+        self.assertEqual({':temp_state': {0: 'OFF'}}, it.presenters)
+
 if __name__ == '__main__':
     unittest.main()

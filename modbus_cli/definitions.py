@@ -61,8 +61,10 @@ class Definitions:
 
         values = {}
         for definition in parts[1:]:
-            value, symbol = definition.split('=')
-
-            values[int(value, 0)] = symbol
+            try:
+                value, symbol = definition.split('=')
+                values[int(value, 0)] = symbol
+            except ValueError:
+                logging.warning('Malformed presenter value skipped: %r', definition)
 
         return name, values
